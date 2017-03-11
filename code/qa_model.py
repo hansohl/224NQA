@@ -45,8 +45,16 @@ class Encoder(object):
                  It can be context-level representation, word-level representation,
                  or both.
         """
+        
+        #read inputs
+        question, paragraph = inputs
+        
+        #calculations
+        q_outputs, q_end_state = tf.nn.dynamic_rnn(cell, question)
+        q_states = tf.tile(q_end_state, [1, paragraph.getshape()[1], 1])
+        para_q_rep = tf.concat(2, [paragraph, q_states])
 
-        return
+        return para_q_rep
 
 
 class Decoder(object):
@@ -66,7 +74,10 @@ class Decoder(object):
         :return:
         """
 
-        return
+        s_outputs, s_end_state = tf.nn.dynamic_rnn(cell, knowledge_rep)
+        e_outputs, e_end_state = tf.nn.dynamic_rnn(cell, knowledge_rep)
+        
+        return s_outputs, e_outputs #cast to make data scalar?
 
 class QASystem(object):
     def __init__(self, encoder, decoder, *args):
@@ -77,29 +88,41 @@ class QASystem(object):
         :param decoder: a decoder that you constructed in train.py
         :param args: pass in more arguments as needed
         """
+        #extra args
+        self.FLAGS  = args[0]
+        embed_size = self.FLAGS.embedding_size
+        output_size = self.FLAGS.output_size
+        
 
         # ==== set up placeholder tokens ========
-
+        self.q_placeholder = tf.placeholder(tf.int32, shape=[None, embed_size])
+        self.p_placeholder = tf.placeholder(tf.int32, shape=[None, embed_size])
+        self.s_labels_placeholder = tf.placeholder(tf.int32, shape=[None, output_size])
+        self.e_labels_placeholder = tf.placeholder(tf.int32, shape=[None, output_size])
 
         # ==== assemble pieces ====
         with tf.variable_scope("qa", initializer=tf.uniform_unit_scaling_initializer(1.0)):
             self.setup_embeddings()
-            self.setup_system()
+            self.setup_system(encoder, decoder)
             self.setup_loss()
 
         # ==== set up training/updating procedure ====
         pass
 
 
-    def setup_system(self):
+    def setup_system(self, encoder, decoder):
         """
         After your modularized implementation of encoder and decoder
         you should call various functions inside encoder, decoder here
         to assemble your reading comprehension system!
         :return:
         """
-        raise NotImplementedError("Connect all parts of your system here!")
+        inputs = (self.distr_q, self.distr_p)
+        #get masks somehow
+        masks = None
 
+        encoding = encoder.encode(inputs, masks)
+        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding)
 
     def setup_loss(self):
         """
@@ -107,7 +130,9 @@ class QASystem(object):
         :return:
         """
         with vs.variable_scope("loss"):
-            pass
+            s_losses = tf.nn.sparse_cross_entropy_with_logits(self.s_ind_probs, self.s_labels_placeholder)
+            e_losses = tf.nn.sparse_cross_entropy_with_logits(self.e_ind_probs, self.e_labels_placeholder)
+            self.loss = tf.reduce_mean(s_losses) + tf.reduce_mean(e_losses)
 
     def setup_embeddings(self):
         """
@@ -115,7 +140,11 @@ class QASystem(object):
         :return:
         """
         with vs.variable_scope("embeddings"):
-            pass
+            embedding_files = np.load("../data/squad/glove.trimmed.100.npz")
+            self.pretrained_embeddings = tf.Constant(embedding_files["glove"])
+            self.distr_q = tf.nn.embedding_lookup(self.pretrained_embeddings, self.q_placeholder)
+            self.distr_p = tf.nn.embedding_lookup(self.pretrained_embeddings, self.p_placeholder)
+      
 
     def optimize(self, session, train_x, train_y):
         """
@@ -123,12 +152,17 @@ class QASystem(object):
         This method is equivalent to a step() function
         :return:
         """
+        q, p = train_x
+        s_labels, e_labels = train_y
         input_feed = {}
-
         # fill in this feed_dictionary like:
         # input_feed['train_x'] = train_x
+        input_feed[self.q_placeholder] = q
+        input_feed[self.p_placeholder] = p
+        input_feed[self.s_labels_placeholder] = s_labels
+        input_feed[self.e_labels_placeholder] = e_labels
 
-        output_feed = []
+        output_feed = [self.training_op]
 
         outputs = session.run(output_feed, input_feed)
 
@@ -221,6 +255,12 @@ class QASystem(object):
 
         return f1, em
 
+
+    #function to make batch inputs/labels of up to self.FLAGS.batch_size examples
+    #output batches are questions, context paras, one hot start labels, one hot end labels
+    #pad batches to max batch len (using None for seq-length in the model)
+    def make_batch(dataset, iteration):
+
     def train(self, session, dataset, train_dir):
         """
         Implement main training loop
@@ -256,3 +296,19 @@ class QASystem(object):
         num_params = sum(map(lambda t: np.prod(tf.shape(t.value()).eval()), params))
         toc = time.time()
         logging.info("Number of params: %d (retreival took %f secs)" % (num_params, toc - tic))
+        
+        
+        #run main training loop: (only 1 epoch for now)
+        train_q, train_p, train_span, val_q, val_p, val_span = dataset
+        max_iters = np.ceil(train_q.shape[0]/float(FLAGS.batch_size))
+        for iteration in max_iters:
+            q_batch, p_batch, s_label_batch, e_label_batch = make_batch(dataset, iteration)
+        
+        
+        
+        
+        
+        
+        
+        
+        

@@ -79,7 +79,23 @@ def get_normalized_train_dir(train_dir):
 def main(_):
 
     # Do what you need to load datasets from FLAGS.data_dir
-    dataset = None
+    def read_from_file(filename):
+        f = open(filename)
+        lines = f.readlines()
+        f.close()
+        #convert list of strings to list of list of ints
+        datalist = [map(int, split(line)) for line in lines]
+        #convert to np array of lists
+        return np.array(datalist)
+    
+    train_q = read_from_file(FLAGS.data_dir + "/train.ids.question")
+    train_p = read_from_file(FLAGS.data_dir + "/train.ids.context")
+    train_span = read_from_file(FLAGS.data_dir + "/train.span")
+    val_q = read_from_file(FLAGS.data_dir + "/val.ids.question")
+    val_p = read_from_file(FLAGS.data_dir + "/val.ids.context")
+    val_span = read_from_file(FLAGS.data_dir + "/val.span")
+    
+    dataset = (train_q, train_p, train_span, val_q, val_p, val_span)
 
     embed_path = FLAGS.embed_path or pjoin("data", "squad", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
     vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
@@ -88,7 +104,7 @@ def main(_):
     encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
     decoder = Decoder(output_size=FLAGS.output_size)
 
-    qa = QASystem(encoder, decoder)
+    qa = QASystem(encoder, decoder, FLAGS)
 
     if not os.path.exists(FLAGS.log_dir):
         os.makedirs(FLAGS.log_dir)
