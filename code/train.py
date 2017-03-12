@@ -84,9 +84,8 @@ def main(_):
         lines = f.readlines()
         f.close()
         #convert list of strings to list of list of ints
-        datalist = [map(int, split(line)) for line in lines]
-        #convert to np array of lists
-        return np.array(datalist)
+        datalist = [map(int, str.split(line)) for line in lines]
+        return datalist
     
     train_q = read_from_file(FLAGS.data_dir + "/train.ids.question")
     train_p = read_from_file(FLAGS.data_dir + "/train.ids.context")
