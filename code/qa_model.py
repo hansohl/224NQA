@@ -48,17 +48,36 @@ class Encoder(object):
         
         #read inputs
         question, paragraph = inputs
+        q_mask, p_mask = masks
         
-        #calculations
-        with tf.variable_scope('enc'):
-            encode_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
-            q_outputs, q_end_state = tf.nn.dynamic_rnn(encode_cell, question, sequence_length=masks, dtype=tf.float32) #LSTM returns a pair of hidden states (c, h)
-        q_end_state = q_end_state[0]
-        q_end_state = tf.expand_dims(q_end_state, axis=1)
-        q_states = tf.tile(q_end_state, [1, tf.shape(paragraph)[1], 1])
-        para_q_rep = tf.concat(2, [paragraph, q_states])
+        #run biLSTM over question
+        with tf.variable_scope('enc_q') as scope:
+            encode_q_f_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
+            encode_q_b_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
+            q_outputs, q_end_state = tf.nn.bidirectional_dynamic_rnn(encode_q_f_cell, encode_q_b_cell, question, sequence_length=q_mask, dtype=tf.float32) #LSTM returns a pair of hidden states (c, h)
+            scope.reuse_variables()
+            
+        #concat end states to get question representation
+        q_fwd_state, q_bkwd_state = q_end_state
+        self.q_rep = tf.concat(1, (q_fwd_state[0], q_bkwd_state[0])) #q rep is Batch by 2*H_size
 
-        return para_q_rep
+        #run biLSTM over paragraph
+        with tf.variable_scope('enc_p') as scope:
+            encode_p_f_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
+            encode_p_b_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
+            p_outputs, p_end_state = tf.nn.bidirectional_dynamic_rnn(encode_p_f_cell, encode_p_b_cell, paragraph, sequence_length=p_mask, dtype=tf.float32) #condition on q rep?
+            scope.reuse_variables()
+        self.p_rep = tf.concat(2, p_outputs) #concat fwd and bkwd outputs
+        
+        
+        #calc scores between paragraph hidden states and q-rep
+        self.attention_weights = tf.get_variable("attent_weights", shape=[2*self.size, 2*self.size], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+        q_attention = tf.matmul(self.q_rep, self.attention_weights)
+        unnorm_attention = tf.batch_matmul(self.p_rep, tf.expand_dims(q_attention, axis=-1)) #dims are batch by seq by 1
+        self.attention = unnorm_attention/tf.sqrt(tf.reduce_sum(tf.square(unnorm_attention), axis=1, keep_dims=True))
+        self.knowledge_rep = tf.multiply(self.p_rep, self.attention)
+
+        return self.knowledge_rep, self.attention
 
 
 class Decoder(object):
@@ -78,12 +97,14 @@ class Decoder(object):
         :return:
         """
         
-        with tf.variable_scope('dec_s'):
+        with tf.variable_scope('dec_s') as scope:
             decode_cell_s = tf.nn.rnn_cell.BasicLSTMCell(1) #self.output_size?
             s_outputs, s_end_state = tf.nn.dynamic_rnn(decode_cell_s, knowledge_rep, sequence_length=masks, dtype=tf.float32)
-        with tf.variable_scope('dec_e'):
+            scope.reuse_variables()
+        with tf.variable_scope('dec_e') as scope:
             decode_cell_e = tf.nn.rnn_cell.BasicLSTMCell(1)
             e_outputs, e_end_state = tf.nn.dynamic_rnn(decode_cell_e, knowledge_rep, sequence_length=masks, dtype=tf.float32)
+            scope.reuse_variables()
         
         return tf.squeeze(s_outputs), tf.squeeze(e_outputs) #cast to make data scalar?
 
@@ -118,7 +139,20 @@ class QASystem(object):
 
         # ==== set up training/updating procedure ====
         self.optimizer = get_optimizer(self.FLAGS.optimizer)(self.FLAGS.learning_rate)
-        self.training_op = self.optimizer.minimize(self.loss)
+        
+        #custom gradient handling - can add gradient clipping later
+        grads_and_vars = self.optimizer.compute_gradients(self.loss)
+        grads = [grad for grad, _ in grads_and_vars]
+        #if self.config.clip_gradients:
+        #    grads, _ = tf.clip_by_global_norm(grads, self.config.max_grad_norm)
+        #    grads_and_vars = [(grads[i], grads_and_vars[i][1]) for i in range(len(grads_and_vars))]
+        self.grad_norm = tf.global_norm(grads)
+        self.training_op = self.optimizer.apply_gradients(grads_and_vars)
+        
+        #default (boring!) trainingop
+        #self.training_op = self.optimizer.minimize(self.loss)
+
+
 
     def setup_system(self, encoder, decoder):
         """
@@ -129,8 +163,11 @@ class QASystem(object):
         """
         inputs = (self.distr_q, self.distr_p)
 
-        encoding = encoder.encode(inputs, self.q_mask_placeholder, None)
+        encoding, attention = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
         self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder)
+        
+        self.attention = attention #store attention vector for analysis
+        
 
     def setup_loss(self):
         """
@@ -158,7 +195,7 @@ class QASystem(object):
         """
         Takes in actual data to optimize your model
         This method is equivalent to a step() function
-        :return:
+        :return: training_op eval, loss
         """
         q, q_lens, p, p_lens = train_x
         s_labels, e_labels = train_y
@@ -172,7 +209,8 @@ class QASystem(object):
         input_feed[self.s_labels_placeholder] = s_labels
         input_feed[self.e_labels_placeholder] = e_labels
         
-        output_feed = [self.training_op]
+        #set the quantities we track/return during training
+        output_feed = [self.training_op, self.loss, self.s_ind_probs, self.e_ind_probs, self.e_labels_placeholder, self.p_mask_placeholder, self.grad_norm, self.attention]
 
         outputs = session.run(output_feed, input_feed)
         
@@ -201,12 +239,18 @@ class QASystem(object):
         so that other methods like self.answer() will be able to work properly
         :return:
         """
+        q, q_lens, p, p_lens = test_x
         input_feed = {}
-
         # fill in this feed_dictionary like:
         # input_feed['test_x'] = test_x
-
-        output_feed = []
+        input_feed[self.q_placeholder] = q
+        input_feed[self.q_mask_placeholder] = q_lens
+        input_feed[self.p_placeholder] = p
+        input_feed[self.p_mask_placeholder] = p_lens
+        input_feed[self.s_labels_placeholder] = s_labels
+        input_feed[self.e_labels_placeholder] = e_labels
+        
+        output_feed = [self.s_ind_probs, self.e_ind_probs] #actually logits not probs, feed to softmax for probs
 
         outputs = session.run(output_feed, input_feed)
 
@@ -241,6 +285,33 @@ class QASystem(object):
 
         return valid_cost
 
+    def make_eval_batch(self, dataset, sample_size):
+        batch_size = sample_size
+        train_q, train_p, train_span, val_q, val_p, val_span = dataset
+        start_index = 0 #TODO: make this random sampling later
+        
+        #make padded q batch
+        qs = val_q[start_index:start_index+batch_size]
+        q_seq_lens = np.array([len(q) for q in qs])
+        q_seq_mlen = np.max(q_seq_lens)
+        q_batch = np.array([q + [PAD_ID]*(q_seq_mlen - len(q)) for q in qs])
+        
+        #make padded p batch
+        ps = val_p[start_index:start_index+batch_size]
+        p_seq_lens = np.array([len(p) for p in ps])
+        p_seq_mlen = np.max(p_seq_lens)
+        p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
+        
+        #make zero-hot start and end labels
+        spans = val_span[start_index:start_index+batch_size]
+        starts = np.array([np.eye(1, p_seq_mlen, s_ind) for s_ind, _ in spans])
+        starts = np.squeeze(starts)
+        ends = np.array([np.eye(1, p_seq_mlen, e_ind) for _, e_ind in spans])
+        ends = np.squeeze(ends)
+
+        return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
+
+
     def evaluate_answer(self, session, dataset, sample=100, log=False):
         """
         Evaluate the model's performance using the harmonic mean of F1 and Exact Match (EM)
@@ -259,9 +330,16 @@ class QASystem(object):
 
         f1 = 0.
         em = 0.
+        
+        q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = make_eval_batch(dataset, sample)
+        
+        
 
         if log:
             logging.info("F1: {}, EM: {}, for {} samples".format(f1, em, sample))
+            
+        
+        
 
         return f1, em
 
@@ -292,10 +370,6 @@ class QASystem(object):
         starts = np.squeeze(starts)
         ends = np.array([np.eye(1, p_seq_mlen, e_ind) for _, e_ind in spans])
         ends = np.squeeze(ends)
-
-        #update self.output_size for minibatch
-        #self.output_size = p_seq_mlen
-
 
         return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
         
@@ -344,13 +418,22 @@ class QASystem(object):
         #run main training loop: (only 1 epoch for now)
         train_q, train_p, train_span, val_q, val_p, val_span = dataset
         max_iters = np.ceil(len(train_q)/float(self.FLAGS.batch_size))
-        for iteration in range(int(max_iters)):
-            print("Current iteration:" + str(iteration))
-            q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, iteration)
-            lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
-            #set annealed lr?
-            self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
-            
+        for epoch in range(10):
+            #temp hack to only train on some small subset:
+            #max_iters = some small constant
+            for iteration in range(int(max_iters)):
+                print("Current iteration: " + str(iteration))
+                q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, iteration)
+                lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
+                #TODO: set annealed lr?
+                #retrieve useful info from training - see optimize() function to set what we're tracking
+                _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
+                print("Current Loss: " + str(loss))
+                #print(pred_s)
+                #print(pred_e)
+                #print(attn)
+                print(grad_norm)
+                
         
         
         
