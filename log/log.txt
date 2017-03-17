@@ -7,3 +7,15 @@ Number of params: 1126416 (retreival took 1.323084 secs)
 Created model with fresh parameters.
 Num params: 1126416
 Number of params: 1126416 (retreival took 1.365102 secs)
+Created model with fresh parameters.
+Num params: 1126416
+Number of params: 1126416 (retreival took 1.377004 secs)
+Created model with fresh parameters.
+Num params: 1126416
+Number of params: 1126416 (retreival took 1.408859 secs)
+Created model with fresh parameters.
+Num params: 1126416
+Number of params: 1126416 (retreival took 1.394494 secs)
+Created model with fresh parameters.
+Num params: 1126416
+Number of params: 1126416 (retreival took 1.415028 secs)
