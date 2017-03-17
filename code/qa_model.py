@@ -45,18 +45,18 @@ class Encoder(object):
                  It can be context-level representation, word-level representation,
                  or both.
         """
-        
+
         #read inputs
         question, paragraph = inputs
         q_mask, p_mask = masks
-        
+
         #run biLSTM over question
         with tf.variable_scope('enc_q') as scope:
             encode_q_f_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
             encode_q_b_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
             q_outputs, q_end_state = tf.nn.bidirectional_dynamic_rnn(encode_q_f_cell, encode_q_b_cell, question, sequence_length=q_mask, dtype=tf.float32) #LSTM returns a pair of hidden states (c, h)
             scope.reuse_variables()
-            
+
         #concat end states to get question representation
         q_fwd_state, q_bkwd_state = q_end_state
         self.q_rep = tf.concat(1, (q_fwd_state[0], q_bkwd_state[0])) #q rep is Batch by 2*H_size
@@ -68,8 +68,8 @@ class Encoder(object):
             p_outputs, p_end_state = tf.nn.bidirectional_dynamic_rnn(encode_p_f_cell, encode_p_b_cell, paragraph, sequence_length=p_mask, dtype=tf.float32) #condition on q rep?
             scope.reuse_variables()
         self.p_rep = tf.concat(2, p_outputs) #concat fwd and bkwd outputs
-        
-        
+
+
         #calc scores between paragraph hidden states and q-rep
         self.attention_weights = tf.get_variable("attent_weights", shape=[2*self.size, 2*self.size], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
         q_attention = tf.matmul(self.q_rep, self.attention_weights)
@@ -96,7 +96,7 @@ class Decoder(object):
                               decided by how you choose to implement the encoder
         :return:
         """
-        
+
         with tf.variable_scope('dec_s') as scope:
             decode_cell_s = tf.nn.rnn_cell.BasicLSTMCell(1) #self.output_size?
             s_outputs, s_end_state = tf.nn.dynamic_rnn(decode_cell_s, knowledge_rep, sequence_length=masks, dtype=tf.float32)
@@ -105,7 +105,7 @@ class Decoder(object):
             decode_cell_e = tf.nn.rnn_cell.BasicLSTMCell(1)
             e_outputs, e_end_state = tf.nn.dynamic_rnn(decode_cell_e, knowledge_rep, sequence_length=masks, dtype=tf.float32)
             scope.reuse_variables()
-        
+
         return tf.squeeze(s_outputs), tf.squeeze(e_outputs) #cast to make data scalar?
 
 class QASystem(object):
@@ -121,7 +121,7 @@ class QASystem(object):
         self.FLAGS  = args[0]
         embed_size = self.FLAGS.embedding_size
         output_size = self.FLAGS.output_size
-        
+
 
         # ==== set up placeholder tokens ========
         self.q_placeholder = tf.placeholder(tf.int32, shape=[None, None], name="q_place") #batch by seq (None, None)
@@ -139,7 +139,7 @@ class QASystem(object):
 
         # ==== set up training/updating procedure ====
         self.optimizer = get_optimizer(self.FLAGS.optimizer)(self.FLAGS.learning_rate)
-        
+
         #custom gradient handling - can add gradient clipping later
         grads_and_vars = self.optimizer.compute_gradients(self.loss)
         grads = [grad for grad, _ in grads_and_vars]
@@ -148,7 +148,7 @@ class QASystem(object):
         #    grads_and_vars = [(grads[i], grads_and_vars[i][1]) for i in range(len(grads_and_vars))]
         self.grad_norm = tf.global_norm(grads)
         self.training_op = self.optimizer.apply_gradients(grads_and_vars)
-        
+
         #default (boring!) trainingop
         #self.training_op = self.optimizer.minimize(self.loss)
 
@@ -165,9 +165,9 @@ class QASystem(object):
 
         encoding, attention = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
         self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder)
-        
+
         self.attention = attention #store attention vector for analysis
-        
+
 
     def setup_loss(self):
         """
@@ -189,7 +189,7 @@ class QASystem(object):
             self.pretrained_embeddings = tf.constant(embedding_files["glove"], dtype=tf.float32)
             self.distr_q = tf.nn.embedding_lookup(self.pretrained_embeddings, self.q_placeholder)
             self.distr_p = tf.nn.embedding_lookup(self.pretrained_embeddings, self.p_placeholder)
-      
+
 
     def optimize(self, session, train_x, train_y):
         """
@@ -208,12 +208,12 @@ class QASystem(object):
         input_feed[self.p_mask_placeholder] = p_lens
         input_feed[self.s_labels_placeholder] = s_labels
         input_feed[self.e_labels_placeholder] = e_labels
-        
+
         #set the quantities we track/return during training
         output_feed = [self.training_op, self.loss, self.s_ind_probs, self.e_ind_probs, self.e_labels_placeholder, self.p_mask_placeholder, self.grad_norm, self.attention]
 
         outputs = session.run(output_feed, input_feed)
-        
+
         return outputs
 
     def test(self, session, valid_x, valid_y):
@@ -249,7 +249,7 @@ class QASystem(object):
         input_feed[self.p_mask_placeholder] = p_lens
         input_feed[self.s_labels_placeholder] = s_labels
         input_feed[self.e_labels_placeholder] = e_labels
-        
+
         output_feed = [self.s_ind_probs, self.e_ind_probs] #actually logits not probs, feed to softmax for probs
 
         outputs = session.run(output_feed, input_feed)
@@ -289,19 +289,19 @@ class QASystem(object):
         batch_size = sample_size
         train_q, train_p, train_span, val_q, val_p, val_span = dataset
         start_index = 0 #TODO: make this random sampling later
-        
+
         #make padded q batch
         qs = val_q[start_index:start_index+batch_size]
         q_seq_lens = np.array([len(q) for q in qs])
         q_seq_mlen = np.max(q_seq_lens)
         q_batch = np.array([q + [PAD_ID]*(q_seq_mlen - len(q)) for q in qs])
-        
+
         #make padded p batch
         ps = val_p[start_index:start_index+batch_size]
         p_seq_lens = np.array([len(p) for p in ps])
         p_seq_mlen = np.max(p_seq_lens)
         p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
-        
+
         #make zero-hot start and end labels
         spans = val_span[start_index:start_index+batch_size]
         starts = np.array([np.eye(1, p_seq_mlen, s_ind) for s_ind, _ in spans])
@@ -330,16 +330,21 @@ class QASystem(object):
 
         f1 = 0.
         em = 0.
-        
+
         q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = make_eval_batch(dataset, sample)
-        
-        
+
+        test_x = (q_batch, q_lens, p_batch, p_lens)
+        pred_s, pred_e = self.answer(session, test_x)
+
+        f1 = [f1_score(p_batch[i][pred_s[i]:pred_e[i]], p_batch[i][s_label_batch[i]:e_label_batch[i]]) for i in range(sample)]
+        em = [exact_match_score(p_batch[i][pred_s[i]:pred_e[i]], p_batch[i][s_label_batch[i]:e_label_batch[i]]) for i in range(sample)]
+
 
         if log:
             logging.info("F1: {}, EM: {}, for {} samples".format(f1, em, sample))
-            
-        
-        
+
+
+
 
         return f1, em
 
@@ -351,19 +356,19 @@ class QASystem(object):
         batch_size = self.FLAGS.batch_size
         train_q, train_p, train_span, val_q, val_p, val_span = dataset
         start_index = iteration*batch_size
-        
+
         #make padded q batch
         qs = train_q[start_index:start_index+batch_size]
         q_seq_lens = np.array([len(q) for q in qs])
         q_seq_mlen = np.max(q_seq_lens)
         q_batch = np.array([q + [PAD_ID]*(q_seq_mlen - len(q)) for q in qs])
-        
+
         #make padded p batch
         ps = train_p[start_index:start_index+batch_size]
         p_seq_lens = np.array([len(p) for p in ps])
         p_seq_mlen = np.max(p_seq_lens)
         p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
-        
+
         #make zero-hot start and end labels
         spans = train_span[start_index:start_index+batch_size]
         starts = np.array([np.eye(1, p_seq_mlen, s_ind) for s_ind, _ in spans])
@@ -372,11 +377,11 @@ class QASystem(object):
         ends = np.squeeze(ends)
 
         return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
-        
-        
-    
-    
-    
+
+
+
+
+
 
     def train(self, session, dataset, train_dir):
         """
@@ -413,11 +418,12 @@ class QASystem(object):
         num_params = sum(map(lambda t: np.prod(tf.shape(t.value()).eval()), params))
         toc = time.time()
         logging.info("Number of params: %d (retreival took %f secs)" % (num_params, toc - tic))
-        
-        
+
+
         #run main training loop: (only 1 epoch for now)
         train_q, train_p, train_span, val_q, val_p, val_span = dataset
         max_iters = np.ceil(len(train_q)/float(self.FLAGS.batch_size))
+        print("Max iterations: " + str(max_iters))
         for epoch in range(10):
             #temp hack to only train on some small subset:
             #max_iters = some small constant
@@ -433,12 +439,3 @@ class QASystem(object):
                 #print(pred_e)
                 #print(attn)
                 print(grad_norm)
-                
-        
-        
-        
-        
-        
-        
-        
-        
