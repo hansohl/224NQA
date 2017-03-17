@@ -86,14 +86,14 @@ def main(_):
         #convert list of strings to list of list of ints
         datalist = [map(int, str.split(line)) for line in lines]
         return datalist
-    
+
     train_q = read_from_file(FLAGS.data_dir + "/train.ids.question")
     train_p = read_from_file(FLAGS.data_dir + "/train.ids.context")
     train_span = read_from_file(FLAGS.data_dir + "/train.span")
     val_q = read_from_file(FLAGS.data_dir + "/val.ids.question")
     val_p = read_from_file(FLAGS.data_dir + "/val.ids.context")
     val_span = read_from_file(FLAGS.data_dir + "/val.span")
-    
+
     dataset = (train_q, train_p, train_span, val_q, val_p, val_span)
 
     embed_path = FLAGS.embed_path or pjoin("data", "squad", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
@@ -121,7 +121,8 @@ def main(_):
         save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
         qa.train(sess, dataset, save_train_dir)
 
-        qa.evaluate_answer(sess, dataset, vocab, FLAGS.evaluate, log=True)
+        # qa.evaluate_answer(sess, dataset, vocab, FLAGS.evaluate, log=True)
+        # qa.evaluate_answer(sess, dataset, log=True)
 
 if __name__ == "__main__":
     tf.app.run()

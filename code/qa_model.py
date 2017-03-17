@@ -247,8 +247,9 @@ class QASystem(object):
         input_feed[self.q_mask_placeholder] = q_lens
         input_feed[self.p_placeholder] = p
         input_feed[self.p_mask_placeholder] = p_lens
-        input_feed[self.s_labels_placeholder] = s_labels
-        input_feed[self.e_labels_placeholder] = e_labels
+        # we don't have the ground truth to loook at, so we dont pass in labels
+        # input_feed[self.s_labels_placeholder] = s_labels
+        # input_feed[self.e_labels_placeholder] = e_labels
 
         output_feed = [self.s_ind_probs, self.e_ind_probs] #actually logits not probs, feed to softmax for probs
 
@@ -331,7 +332,7 @@ class QASystem(object):
         f1 = 0.
         em = 0.
 
-        q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = make_eval_batch(dataset, sample)
+        q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_eval_batch(dataset, sample)
 
         test_x = (q_batch, q_lens, p_batch, p_lens)
         pred_s, pred_e = self.answer(session, test_x)
@@ -342,10 +343,6 @@ class QASystem(object):
 
         if log:
             logging.info("F1: {}, EM: {}, for {} samples".format(f1, em, sample))
-
-
-
-
         return f1, em
 
 
@@ -369,12 +366,17 @@ class QASystem(object):
         p_seq_mlen = np.max(p_seq_lens)
         p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
 
-        #make zero-hot start and end labels
+        #make one-hot start and end labels
         spans = train_span[start_index:start_index+batch_size]
-        starts = np.array([np.eye(1, p_seq_mlen, s_ind) for s_ind, _ in spans])
-        starts = np.squeeze(starts)
-        ends = np.array([np.eye(1, p_seq_mlen, e_ind) for _, e_ind in spans])
-        ends = np.squeeze(ends)
+        s_inds, e_inds = zip(*spans)
+        s_inds = np.array(s_inds)
+        e_inds = np.array(e_inds)
+        starts = np.eye(p_seq_mlen)[s_inds]
+        ends = np.eye(p_seq_mlen)[e_inds]
+        # starts = np.array([np.eye(1, p_seq_mlen, s_ind) for s_ind, _ in spans])
+        # starts = np.squeeze(starts)
+        # ends = np.array([np.eye(1, p_seq_mlen, e_ind) for _, e_ind in spans])
+        # ends = np.squeeze(ends)
 
         return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
 
@@ -428,20 +430,20 @@ class QASystem(object):
         for epoch in range(10):
             #temp hack to only train on some small subset:
             #max_iters = some small constant
-            # q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, 8138)
-            # # lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
-            # _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
-            # print("Current Loss: " + str(loss))
+            q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, 8137)
+            # lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
+            _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
+            print("Current Loss: " + str(loss))
 
-            for iteration in range(int(max_iters)):
-                print("Current iteration: " + str(iteration))
-                q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, iteration)
-                lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
-                #TODO: set annealed lr?
-                #retrieve useful info from training - see optimize() function to set what we're tracking
-                _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
-                print("Current Loss: " + str(loss))
-                #print(pred_s)
-                #print(pred_e)
-                #print(attn)
-                print(grad_norm)
+            # for iteration in range(int(max_iters)):
+            #     print("Current iteration: " + str(iteration))
+            #     q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, iteration)
+            #     lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
+            #     #TODO: set annealed lr?
+            #     #retrieve useful info from training - see optimize() function to set what we're tracking
+            #     _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
+            #     print("Current Loss: " + str(loss))
+            #     #print(pred_s)
+            #     #print(pred_e)
+            #     #print(attn)
+            #     print(grad_norm)
