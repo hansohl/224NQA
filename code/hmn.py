@@ -27,7 +27,7 @@ def HMN(U, h_i, s_prev, e_prev, scope_name):
         m2 = tf.reduce_max(tf.matmul(m1, W2) + b2, axis=3) #m2 is batch_size x question_length x hidden_size (pool maxed over again)
 
         m1m2 = tf.concat(2, [m1, m2]) #m1m2 is batch_size x question_length x (2 * hidden_size)
-        hmn = tf.reduce_max(tf.matmul(m1m2, W3) + b3, axis=0)
+        hmn = tf.reduce_max(tf.matmul(m1m2, W3) + b3, axis=3)
         #before_max, we have batch_size x question_length x 1 x POOL_SIZE
         # after, we have batch_size x question_length (these are the alpha t's)
 
