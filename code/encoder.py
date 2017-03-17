@@ -46,7 +46,7 @@ class Encoder(object):
             #get final Q rep:
             W = tf.get_variable("W_qenc", shape=[self.size, self.size], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
             b = tf.get_variable("b_qenc", shape=[tf.shape(question)[0], tf.shape(question)[1], self.size])
-            Q = tf.tanh(tf.matmul(W, q_outputs) + b)            
+            Q = tf.tanh(tf.matmul(q_outputs, W) + b)            
             scope.reuse_variables()
             
         #affinity matrix from batch matmuln and resulting attention weights
