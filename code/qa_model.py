@@ -430,20 +430,16 @@ class QASystem(object):
         for epoch in range(10):
             #temp hack to only train on some small subset:
             #max_iters = some small constant
-            q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, 8137)
-            # lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
-            _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
-            print("Current Loss: " + str(loss))
 
-            # for iteration in range(int(max_iters)):
-            #     print("Current iteration: " + str(iteration))
-            #     q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, iteration)
-            #     lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
-            #     #TODO: set annealed lr?
-            #     #retrieve useful info from training - see optimize() function to set what we're tracking
-            #     _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
-            #     print("Current Loss: " + str(loss))
-            #     #print(pred_s)
-            #     #print(pred_e)
-            #     #print(attn)
-            #     print(grad_norm)
+            for iteration in range(int(max_iters)):
+                print("Current iteration: " + str(iteration))
+                q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_batch(dataset, iteration)
+                lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
+                #TODO: set annealed lr?
+                #retrieve useful info from training - see optimize() function to set what we're tracking
+                _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
+                print("Current Loss: " + str(loss))
+                #print(pred_s)
+                #print(pred_e)
+                #print(attn)
+                print(grad_norm)
