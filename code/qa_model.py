@@ -303,12 +303,13 @@ class QASystem(object):
         p_seq_mlen = np.max(p_seq_lens)
         p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
 
-        #make zero-hot start and end labels
+        #make one-hot start and end labels
         spans = val_span[start_index:start_index+batch_size]
-        starts = np.array([np.eye(1, p_seq_mlen, s_ind) for s_ind, _ in spans])
-        starts = np.squeeze(starts)
-        ends = np.array([np.eye(1, p_seq_mlen, e_ind) for _, e_ind in spans])
-        ends = np.squeeze(ends)
+        s_inds, e_inds = zip(*spans)
+        s_inds = np.array(s_inds)
+        e_inds = np.array(e_inds)
+        starts = np.eye(p_seq_mlen)[s_inds]
+        ends = np.eye(p_seq_mlen)[e_inds]
 
         return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
 
@@ -336,9 +337,23 @@ class QASystem(object):
 
         test_x = (q_batch, q_lens, p_batch, p_lens)
         pred_s, pred_e = self.answer(session, test_x)
+        
+        pred_word_inds = [p_batch[i][pred_s[i]:pred_e[i]+1] for i in range(sample)]
+        label_word_inds = [p_batch[i][np.argmax(s_label_batch[i]):np.argmax(e_label_batch[i])+1] for i in range(sample)]
+        #print(label_word_inds)
+        #print(pred_word_inds)
+        
+        pred_words = [" ".join(map(str, pred_inds)) for pred_inds in pred_word_inds]
+        label_words = [" ".join(map(str, label_inds)) for label_inds in label_word_inds]
+        print(pred_words)
+        print(label_words)
+        
+        
+        f1s = [f1_score(pred_words[i], label_words[i]) for i in range(sample)]
+        ems = [exact_match_score(pred_words[i], label_words[i]) for i in range(sample)]
 
-        f1 = [f1_score(p_batch[i][pred_s[i]:pred_e[i]], p_batch[i][s_label_batch[i]:e_label_batch[i]]) for i in range(sample)]
-        em = [exact_match_score(p_batch[i][pred_s[i]:pred_e[i]], p_batch[i][s_label_batch[i]:e_label_batch[i]]) for i in range(sample)]
+        f1 = sum(f1s)/float(len(f1s))
+        em = sum(ems)/float(len(ems))
 
 
         if log:
@@ -373,10 +388,6 @@ class QASystem(object):
         e_inds = np.array(e_inds)
         starts = np.eye(p_seq_mlen)[s_inds]
         ends = np.eye(p_seq_mlen)[e_inds]
-        # starts = np.array([np.eye(1, p_seq_mlen, s_ind) for s_ind, _ in spans])
-        # starts = np.squeeze(starts)
-        # ends = np.array([np.eye(1, p_seq_mlen, e_ind) for _, e_ind in spans])
-        # ends = np.squeeze(ends)
 
         return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
 

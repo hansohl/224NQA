@@ -92,7 +92,8 @@ def main(_):
     train_span = read_from_file(FLAGS.data_dir + "/train.span")
     val_q = read_from_file(FLAGS.data_dir + "/val.ids.question")
     val_p = read_from_file(FLAGS.data_dir + "/val.ids.context")
-    val_span = read_from_file(FLAGS.data_dir + "/val.span")
+    val_span = read_from_file(FLAGS.data_dir + "/val.span")    
+
 
     dataset = (train_q, train_p, train_span, val_q, val_p, val_span)
 
@@ -122,7 +123,7 @@ def main(_):
         qa.train(sess, dataset, save_train_dir)
 
         # qa.evaluate_answer(sess, dataset, vocab, FLAGS.evaluate, log=True)
-        # qa.evaluate_answer(sess, dataset, log=True)
+        qa.evaluate_answer(sess, dataset, log=True)
 
 if __name__ == "__main__":
     tf.app.run()
