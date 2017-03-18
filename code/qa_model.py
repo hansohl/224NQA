@@ -215,8 +215,8 @@ class QASystem(object):
         print("Max iterations: " + str(max_iters))
         for iteration in range(int(max_iters)):
             print("Current iteration: " + str(iteration))
-            q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_validation_batch(dataset, iteration)
-            #retrieve useful info from training - see optimize() function to set what we're tracking
+            q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_validation_batch(valid_dataset, iteration)
+            #retrieve useful info from training - see test() function to set what we're tracking
             loss, summ_str = self.test(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
             valid_cost += loss
         valid_cost = valid_cost / int(max_iters)
