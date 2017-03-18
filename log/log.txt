@@ -188,3 +188,349 @@ Created model with fresh parameters.
 Num params: 1126416
 Number of params: 1126416 (retreival took 0.531260 secs)
 F1: 0.022118325206, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.645961 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.676720 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.650891 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.663598 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.640712 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.640261 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.641334 secs)
+F1: 0.0, EM: 0.0, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.633515 secs)
+F1: 0.0337273108764, EM: 0.0, for 100 samples
+F1: 0.0289068057546, EM: 0.01, for 100 samples
+F1: 0.0218779599271, EM: 0.01, for 100 samples
+F1: 0.0329458689459, EM: 0.02, for 100 samples
+F1: 0.0287919214678, EM: 0.01, for 100 samples
+F1: 0.0416624202963, EM: 0.01, for 100 samples
+F1: 0.0500886624985, EM: 0.03, for 100 samples
+F1: 0.038827866512, EM: 0.02, for 100 samples
+F1: 0.053575036075, EM: 0.03, for 100 samples
+F1: 0.0442313820767, EM: 0.01, for 100 samples
+F1: 0.062616705565, EM: 0.03, for 100 samples
+F1: 0.0391642784383, EM: 0.0, for 100 samples
+F1: 0.0467502088555, EM: 0.03, for 100 samples
+F1: 0.0286771225215, EM: 0.01, for 100 samples
+F1: 0.0313015873016, EM: 0.02, for 100 samples
+F1: 0.0332425810904, EM: 0.02, for 100 samples
+F1: 0.0250793650794, EM: 0.01, for 100 samples
+F1: 0.0615406260406, EM: 0.04, for 100 samples
+F1: 0.080042746727, EM: 0.05, for 100 samples
+F1: 0.0622705450913, EM: 0.03, for 100 samples
+F1: 0.0803657733409, EM: 0.03, for 100 samples
+F1: 0.0403450169902, EM: 0.02, for 100 samples
+F1: 0.0796120209634, EM: 0.03, for 100 samples
+F1: 0.0566476190476, EM: 0.04, for 100 samples
+F1: 0.0595238095238, EM: 0.05, for 100 samples
+F1: 0.090782753844, EM: 0.05, for 100 samples
+F1: 0.074663003663, EM: 0.05, for 100 samples
+F1: 0.0595793650794, EM: 0.04, for 100 samples
+F1: 0.0439682539683, EM: 0.03, for 100 samples
+F1: 0.035873015873, EM: 0.03, for 100 samples
+F1: 0.0650793650794, EM: 0.05, for 100 samples
+F1: 0.0610728197941, EM: 0.04, for 100 samples
+F1: 0.0624440886533, EM: 0.04, for 100 samples
+F1: 0.0342294685693, EM: 0.02, for 100 samples
+F1: 0.0759611969367, EM: 0.04, for 100 samples
+F1: 0.0545154224657, EM: 0.03, for 100 samples
+F1: 0.0680304638024, EM: 0.05, for 100 samples
+F1: 0.0609688327127, EM: 0.02, for 100 samples
+F1: 0.0574526594723, EM: 0.03, for 100 samples
+F1: 0.0868204432024, EM: 0.04, for 100 samples
+F1: 0.0619785064785, EM: 0.04, for 100 samples
+F1: 0.0539775976072, EM: 0.03, for 100 samples
+F1: 0.0719073367517, EM: 0.03, for 100 samples
+F1: 0.0655295815296, EM: 0.05, for 100 samples
+F1: 0.0802640614658, EM: 0.04, for 100 samples
+F1: 0.0769473304473, EM: 0.05, for 100 samples
+F1: 0.0505555555556, EM: 0.04, for 100 samples
+F1: 0.0628505216579, EM: 0.04, for 100 samples
+F1: 0.0638405524001, EM: 0.03, for 100 samples
+F1: 0.0480008783487, EM: 0.04, for 100 samples
+F1: 0.0641329722909, EM: 0.03, for 100 samples
+F1: 0.0559489302968, EM: 0.04, for 100 samples
+F1: 0.0206349206349, EM: 0.01, for 100 samples
+F1: 0.051746031746, EM: 0.04, for 100 samples
+F1: 0.0771305047609, EM: 0.04, for 100 samples
+F1: 0.0469459285875, EM: 0.04, for 100 samples
+F1: 0.0544519726925, EM: 0.03, for 100 samples
+F1: 0.0599307359307, EM: 0.04, for 100 samples
+F1: 0.087466677277, EM: 0.04, for 100 samples
+F1: 0.0515555555556, EM: 0.04, for 100 samples
+F1: 0.0820964035964, EM: 0.05, for 100 samples
+F1: 0.0677912087912, EM: 0.04, for 100 samples
+F1: 0.0535391079509, EM: 0.03, for 100 samples
+F1: 0.0489648033126, EM: 0.04, for 100 samples
+F1: 0.0503903048476, EM: 0.03, for 100 samples
+F1: 0.0687357168975, EM: 0.05, for 100 samples
+F1: 0.0487663906142, EM: 0.03, for 100 samples
+F1: 0.0339718614719, EM: 0.01, for 100 samples
+F1: 0.0767469316677, EM: 0.03, for 100 samples
+F1: 0.0608871572872, EM: 0.04, for 100 samples
+F1: 0.0546031746032, EM: 0.04, for 100 samples
+F1: 0.0612836134454, EM: 0.04, for 100 samples
+F1: 0.058644588226, EM: 0.03, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.636380 secs)
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.634745 secs)
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.666472 secs)
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.650492 secs)
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.637343 secs)
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0524368867847, EM: 0.0, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.614793 secs)
+F1: 0.00580418007678, EM: 0.0, for 100 samples
+F1: 0.0258591515828, EM: 0.0, for 100 samples
+F1: 0.0130050125313, EM: 0.0, for 100 samples
+F1: 0.0586292021458, EM: 0.0, for 100 samples
+F1: 0.0464428387052, EM: 0.0, for 100 samples
+F1: 0.043509913542, EM: 0.0, for 100 samples
+F1: 0.0256815336319, EM: 0.0, for 100 samples
+F1: 0.0358986785331, EM: 0.0, for 100 samples
+F1: 0.048000131649, EM: 0.0, for 100 samples
+F1: 0.0193254263795, EM: 0.0, for 100 samples
+F1: 0.0492876500615, EM: 0.0, for 100 samples
+F1: 0.0317521568725, EM: 0.02, for 100 samples
+F1: 0.041599043001, EM: 0.01, for 100 samples
+F1: 0.0349362902913, EM: 0.0, for 100 samples
+F1: 0.0417727272727, EM: 0.03, for 100 samples
+F1: 0.0293659119999, EM: 0.02, for 100 samples
+F1: 0.0360738150738, EM: 0.01, for 100 samples
+F1: 0.0501238125143, EM: 0.02, for 100 samples
+F1: 0.0454908014836, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.630015 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.621787 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.620281 secs)
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.653033 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.632291 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.693158 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.647588 secs)
+F1: 0.0106859367744, EM: 0.0, for 100 samples
+F1: 0.0406823227721, EM: 0.0, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.04113003663, EM: 0.02, for 100 samples
+F1: 0.0409361904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.630208 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.625304 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.622513 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.623588 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.620786 secs)
+F1: 0.000692640692641, EM: 0.0, for 100 samples
+F1: 0.000692640692641, EM: 0.0, for 100 samples
+F1: 0.000810983887907, EM: 0.0, for 100 samples
+F1: 0.00122361414397, EM: 0.0, for 100 samples
+F1: 0.00122361414397, EM: 0.0, for 100 samples
+F1: 0.000689655172414, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.627363 secs)
+F1: 0.00733333333333, EM: 0.0, for 100 samples
+F1: 0.0443594642073, EM: 0.01, for 100 samples
+F1: 0.0279366240821, EM: 0.0, for 100 samples
+F1: 0.00736030595813, EM: 0.0, for 100 samples
+F1: 0.0132684221049, EM: 0.0, for 100 samples
+F1: 0.0581469906893, EM: 0.01, for 100 samples
+F1: 0.0283150341252, EM: 0.0, for 100 samples
+F1: 0.0527064793304, EM: 0.0, for 100 samples
+F1: 0.0438795693901, EM: 0.0, for 100 samples
+F1: 0.0399559855858, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.623007 secs)
+From /home/hansohl/Desktop/CS224N/Project/code/qa_model.py:436 in train.: __init__ (from tensorflow.python.training.summary_io) is deprecated and will be removed after 2016-11-30.
+Instructions for updating:
+Please switch to tf.summary.FileWriter. The interface and behavior is the same; this is just a rename.
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.617452 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.644980 secs)
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.616231 secs)
+F1: 0.0, EM: 0.0, for 100 samples
+F1: 0.0, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.611440 secs)
+F1: 0.00330470373002, EM: 0.0, for 100 samples
+F1: 0.00171026210104, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.683329 secs)
+F1: 0.00333333333333, EM: 0.0, for 100 samples
+F1: 0.000322580645161, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.618393 secs)
+F1: 0.0107936507937, EM: 0.0, for 100 samples
+F1: 0.0025, EM: 0.0, for 100 samples
+F1: 0.005268321513, EM: 0.0, for 100 samples
+F1: 0.00659401709402, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.621281 secs)
+F1: 0.000554917719097, EM: 0.0, for 100 samples
+F1: 0.0, EM: 0.0, for 100 samples
+F1: 0.000512820512821, EM: 0.0, for 100 samples
+F1: 0.0, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.625466 secs)
+F1: 0.0052837619664, EM: 0.0, for 100 samples
+F1: 0.00198572886502, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.725106 secs)
+F1: 0.00523444976077, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.647584 secs)
+F1: 0.0191666666667, EM: 0.01, for 100 samples
+F1: 0.00964472455649, EM: 0.0, for 100 samples
+F1: 0.0394784839857, EM: 0.0, for 100 samples
+F1: 0.0277063613558, EM: 0.0, for 100 samples
+F1: 0.0237827456033, EM: 0.0, for 100 samples
+F1: 0.0266563757575, EM: 0.01, for 100 samples
+F1: 0.0564617428693, EM: 0.01, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.627329 secs)
+F1: 0.0339757266622, EM: 0.0, for 100 samples
+F1: 0.0377923371724, EM: 0.01, for 100 samples
+F1: 0.0492646305372, EM: 0.01, for 100 samples
+F1: 0.0399761904762, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 1246216
+Number of params: 1246216 (retreival took 0.642358 secs)
+F1: 0.0322070421553, EM: 0.01, for 100 samples
+F1: 0.051235883879, EM: 0.03, for 100 samples
+F1: 0.0435518447131, EM: 0.02, for 100 samples
+F1: 0.0584461314164, EM: 0.02, for 100 samples
+F1: 0.0276681743652, EM: 0.0, for 100 samples
+F1: 0.0519475079984, EM: 0.0, for 100 samples
+F1: 0.0519632305272, EM: 0.0, for 100 samples
+F1: 0.0558475997867, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 2205002
+Number of params: 2205002 (retreival took 0.839115 secs)
+F1: 0.0568457015334, EM: 0.01, for 100 samples
+F1: 0.0479762136516, EM: 0.02, for 100 samples
+F1: 0.0264664631736, EM: 0.0, for 100 samples
+F1: 0.037327740107, EM: 0.0, for 100 samples
+F1: 0.028945396234, EM: 0.0, for 100 samples
+F1: 0.0436659273119, EM: 0.01, for 100 samples
+Created model with fresh parameters.
+Num params: 2525002
+Number of params: 2525002 (retreival took 0.853347 secs)
+F1: 0.0714695333304, EM: 0.04, for 100 samples
+F1: 0.032090105243, EM: 0.0, for 100 samples
+F1: 0.0394063802792, EM: 0.0, for 100 samples
+F1: 0.0529387288453, EM: 0.01, for 100 samples
+F1: 0.0267022077538, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 2525002
+Number of params: 2525002 (retreival took 0.838053 secs)
+F1: 0.0654368481688, EM: 0.02, for 100 samples
+Created model with fresh parameters.
+Num params: 2525002
+Number of params: 2525002 (retreival took 0.849772 secs)
+F1: 0.0414254208469, EM: 0.01, for 100 samples
+Created model with fresh parameters.
+Num params: 2525002
+Number of params: 2525002 (retreival took 0.880881 secs)
+F1: 0.035674020297, EM: 0.01, for 100 samples
+Created model with fresh parameters.
+Num params: 2525002
+Number of params: 2525002 (retreival took 0.840301 secs)
+F1: 0.0321587301587, EM: 0.0, for 100 samples

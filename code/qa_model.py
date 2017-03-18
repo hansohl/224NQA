@@ -129,9 +129,12 @@ class QASystem(object):
         self.p_placeholder = tf.placeholder(tf.int32, shape=[None, None], name="p_place")
         self.q_mask_placeholder = tf.placeholder(tf.int32, shape=[None], name="q_mask") #batch (None)
         self.p_mask_placeholder = tf.placeholder(tf.int32, shape=[None], name="p_mask")
-        self.s_labels_placeholder = tf.placeholder(tf.int32, shape=[None, None], name="s_place") #batch by output seq
-        self.e_labels_placeholder = tf.placeholder(tf.int32, shape=[None, None], name="e_place")
-
+        #self.s_labels_placeholder = tf.placeholder(tf.float32, shape=[None, None], name="s_place") #batch by output seq
+        #self.e_labels_placeholder = tf.placeholder(tf.float32, shape=[None, None], name="e_place")
+        self.s_labels_placeholder = tf.placeholder(tf.int32, shape=[None], name="s_place")
+        self.e_labels_placeholder = tf.placeholder(tf.int32, shape=[None], name="e_place")
+        
+        
         # ==== assemble pieces ====
         with tf.variable_scope("qa", initializer=tf.uniform_unit_scaling_initializer(1.0)):
             self.setup_embeddings()
@@ -145,11 +148,13 @@ class QASystem(object):
         grads_and_vars = self.optimizer.compute_gradients(self.loss)
         grads = [grad for grad, _ in grads_and_vars]
         #if self.config.clip_gradients:
-        #    grads, _ = tf.clip_by_global_norm(grads, self.config.max_grad_norm)
-        #    grads_and_vars = [(grads[i], grads_and_vars[i][1]) for i in range(len(grads_and_vars))]
+        grads, _ = tf.clip_by_global_norm(grads, self.FLAGS.max_gradient_norm)
+        grads_and_vars = [(grads[i], grads_and_vars[i][1]) for i in range(len(grads_and_vars))]
         self.grad_norm = tf.global_norm(grads)
+        tf.summary.scalar('grad_norm', self.grad_norm)
         self.training_op = self.optimizer.apply_gradients(grads_and_vars)
 
+        self.summary = tf.merge_all_summaries()
         #default (boring!) trainingop
         #self.training_op = self.optimizer.minimize(self.loss)
 
@@ -165,9 +170,7 @@ class QASystem(object):
         inputs = (self.distr_q, self.distr_p)
 
         encoding = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
-        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder, self.FLAGS.batch_size)
-
-        self.attention = attention #store attention vector for analysis
+        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder)
 
 
     def setup_loss(self):
@@ -176,9 +179,14 @@ class QASystem(object):
         :return:
         """
         with vs.variable_scope("loss"):
-            s_losses = tf.nn.softmax_cross_entropy_with_logits(self.s_ind_probs, self.s_labels_placeholder)
-            e_losses = tf.nn.softmax_cross_entropy_with_logits(self.e_ind_probs, self.e_labels_placeholder)
+            #s_losses = tf.nn.softmax_cross_entropy_with_logits(self.s_ind_probs, self.s_labels_placeholder)
+            #e_losses = tf.nn.softmax_cross_entropy_with_logits(self.e_ind_probs, self.e_labels_placeholder)
+            s_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(self.s_ind_probs, self.s_labels_placeholder)
+            e_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(self.e_ind_probs, self.e_labels_placeholder)
             self.loss = tf.reduce_mean(s_losses) + tf.reduce_mean(e_losses)
+            tf.summary.scalar('s_loss', tf.reduce_mean(s_losses))
+            tf.summary.scalar('e_loss', tf.reduce_mean(e_losses))
+            tf.summary.scalar('loss', self.loss)
 
     def setup_embeddings(self):
         """
@@ -211,7 +219,7 @@ class QASystem(object):
         input_feed[self.e_labels_placeholder] = e_labels
 
         #set the quantities we track/return during training
-        output_feed = [self.training_op, self.loss, self.s_ind_probs, self.e_ind_probs, self.e_labels_placeholder, self.p_mask_placeholder, self.grad_norm, self.attention]
+        output_feed = [self.training_op, self.loss, self.e_ind_probs, self.e_labels_placeholder, self.grad_norm, self.summary]
 
         outputs = session.run(output_feed, input_feed)
 
@@ -307,12 +315,10 @@ class QASystem(object):
         #make one-hot start and end labels
         spans = val_span[start_index:start_index+batch_size]
         s_inds, e_inds = zip(*spans)
-        s_inds = np.array(s_inds)
-        e_inds = np.array(e_inds)
-        starts = np.eye(p_seq_mlen)[s_inds]
-        ends = np.eye(p_seq_mlen)[e_inds]
+        starts = np.eye(p_seq_mlen)[np.array(s_inds)]
+        ends = np.eye(p_seq_mlen)[np.array(e_inds)]
 
-        return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
+        return q_batch, q_seq_lens, p_batch, p_seq_lens, np.array(s_inds, dtype=np.int32), np.array(e_inds, dtype=np.int32)
 
 
     def evaluate_answer(self, session, dataset, sample=100, log=False):
@@ -340,14 +346,14 @@ class QASystem(object):
         pred_s, pred_e = self.answer(session, test_x)
         
         pred_word_inds = [p_batch[i][pred_s[i]:pred_e[i]+1] for i in range(sample)]
-        label_word_inds = [p_batch[i][np.argmax(s_label_batch[i]):np.argmax(e_label_batch[i])+1] for i in range(sample)]
+        label_word_inds = [p_batch[i][s_label_batch[i]:e_label_batch[i]+1] for i in range(sample)]
         #print(label_word_inds)
         #print(pred_word_inds)
         
         pred_words = [" ".join(map(str, pred_inds)) for pred_inds in pred_word_inds]
         label_words = [" ".join(map(str, label_inds)) for label_inds in label_word_inds]
-        print(pred_words)
-        print(label_words)
+        #print(pred_words)
+        #print(label_words)
         
         
         f1s = [f1_score(pred_words[i], label_words[i]) for i in range(sample)]
@@ -385,12 +391,10 @@ class QASystem(object):
         #make one-hot start and end labels
         spans = train_span[start_index:start_index+batch_size]
         s_inds, e_inds = zip(*spans)
-        s_inds = np.array(s_inds)
-        e_inds = np.array(e_inds)
-        starts = np.eye(p_seq_mlen)[s_inds]
-        ends = np.eye(p_seq_mlen)[e_inds]
+        starts = np.eye(p_seq_mlen)[np.array(s_inds)].astype(np.float32)
+        ends = np.eye(p_seq_mlen)[np.array(e_inds)].astype(np.float32)
 
-        return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
+        return q_batch, q_seq_lens, p_batch, p_seq_lens, np.array(s_inds, dtype=np.int32), np.array(e_inds, dtype=np.int32)
 
 
 
@@ -433,13 +437,13 @@ class QASystem(object):
         toc = time.time()
         logging.info("Number of params: %d (retreival took %f secs)" % (num_params, toc - tic))
 
+        summary_writer = tf.summary.FileWriter(self.FLAGS.train_dir, session.graph)
 
         #run main training loop: (only 10 epochs for now)
         train_q, train_p, train_span, val_q, val_p, val_span = dataset
-        print(len(train_q))
         max_iters = np.ceil(len(train_q)/float(self.FLAGS.batch_size))
         print("Max iterations: " + str(max_iters))
-        for epoch in range(10):
+        for epoch in range(100):
             #temp hack to only train on some small subset:
             #max_iters = some small constant
 
@@ -449,9 +453,15 @@ class QASystem(object):
                 lr = tf.train.exponential_decay(self.FLAGS.learning_rate, iteration, 100, 0.96) #iteration here should be global when multiple epochs
                 #TODO: set annealed lr?
                 #retrieve useful info from training - see optimize() function to set what we're tracking
-                _, loss, pred_s, pred_e, label_e, p_mask, grad_norm, attn = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
+                _, loss, pred_e, label_e, grad_norm, summ_str = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
                 print("Current Loss: " + str(loss))
                 #print(pred_s)
                 #print(pred_e)
-                #print(attn)
+                #print(label_e)
                 print(grad_norm)
+                summary_writer.add_summary(summ_str, iteration)
+                if iteration%100==99:
+                    self.evaluate_answer(session, dataset, log=True)
+                
+                
+                
