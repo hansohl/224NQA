@@ -6,10 +6,11 @@ import os
 import json
 
 import tensorflow as tf
+# from tensorflow.python import debug as tf_debug
 
 #from qa_model import Encoder, QASystem, Decoder
 from encoder import Encoder
-from decoder import Decoder
+from decoder import DCNDecoder
 from qa_model import QASystem
 from os.path import join as pjoin
 
@@ -95,7 +96,7 @@ def main(_):
     train_span = read_from_file(FLAGS.data_dir + "/train.span")
     val_q = read_from_file(FLAGS.data_dir + "/val.ids.question")
     val_p = read_from_file(FLAGS.data_dir + "/val.ids.context")
-    val_span = read_from_file(FLAGS.data_dir + "/val.span")    
+    val_span = read_from_file(FLAGS.data_dir + "/val.span")
 
 
     dataset = (train_q, train_p, train_span, val_q, val_p, val_span)
@@ -105,7 +106,7 @@ def main(_):
     vocab, rev_vocab = initialize_vocab(vocab_path)
 
     encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
-    decoder = Decoder(output_size=FLAGS.output_size)
+    decoder = DCNDecoder(output_size=FLAGS.output_size)
 
     qa = QASystem(encoder, decoder, FLAGS)
 
@@ -119,6 +120,7 @@ def main(_):
         json.dump(FLAGS.__flags, fout)
 
     with tf.Session() as sess:
+        # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
         load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
         initialize_model(sess, qa, load_train_dir)
 

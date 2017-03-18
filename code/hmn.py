@@ -1,29 +1,33 @@
+import tensorflow as tf
+
 POOL_SIZE = 16
 HIDDEN_LAYER_SIZE = 200
-batch_size = 10
-question_length = 600
+# batch_size = 10
+# question_length = 600
 
 def HMN(U, h_i, s_prev, e_prev, batch_size, scope_name):
     with tf.variable_scope(scope_name) as scope:
         # u_s = U[:,s_prev]
         # u_e = U[:,e_prev]
         batch_size = tf.shape(U)[0]
+        document_length = tf.shape(U)[1]
 
-        W1 = tf.get_variable("HMN_W1", [3 * HIDDEN_LAYER_SIZE, HIDDEN_LAYER_SIZE, POOL_SIZE], initializer=tf.contrib.layers.xavier_initializer())
-        W2 = tf.get_variable("HMN_W2", [HIDDEN_LAYER_SIZE, HIDDEN_LAYER_SIZE, POOL_SIZE], initializer=tf.contrib.layers.xavier_initializer())
-        W3 = tf.get_variable("HMN_W3", [2*HIDDEN_LAYER_SIZE, 1, POOL_SIZE], initializer=tf.contrib.layers.xavier_initializer())
-        Wd = tf.get_variable("HMN_WD", [5 * HIDDEN_LAYER_SIZE, HIDDEN_LAYER_SIZE], initializer=tf.contrib.layers.xavier_initializer())
+        W1 = tf.get_variable("HMN_W1", [3 * HIDDEN_LAYER_SIZE, HIDDEN_LAYER_SIZE, POOL_SIZE], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
+        W2 = tf.get_variable("HMN_W2", [HIDDEN_LAYER_SIZE, HIDDEN_LAYER_SIZE, POOL_SIZE], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
+        W3 = tf.get_variable("HMN_W3", [2*HIDDEN_LAYER_SIZE, 1, POOL_SIZE], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
+        Wd = tf.get_variable("HMN_WD", [5 * HIDDEN_LAYER_SIZE, HIDDEN_LAYER_SIZE], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
 
-        b1 = tf.get_variable("HMN_B1", [HIDDEN_LAYER_SIZE, POOL_SIZE], tf.zeros([HIDDEN_LAYER_SIZE, POOL_SIZE]), tf.zeros_initializer())
-        b2 = tf.get_variable("HMN_B2", [HIDDEN_LAYER_SIZE, POOL_SIZE], tf.zeros([HIDDEN_LAYER_SIZE, POOL_SIZE]), tf.zeros_initializer())
-        b3 = tf.get_variable("HMN_B3", [POOL_SIZE,], tf.zeros([POOL_SIZE,]), tf.zeros_initializer())
+        b1 = tf.get_variable("HMN_B1", [HIDDEN_LAYER_SIZE, POOL_SIZE], initializer=tf.constant_initializer(0.0), dtype=tf.float32)
+        b2 = tf.get_variable("HMN_B2", [HIDDEN_LAYER_SIZE, POOL_SIZE], initializer=tf.constant_initializer(0.0), dtype=tf.float32)
+        b3 = tf.get_variable("HMN_B3", [POOL_SIZE,], initializer=tf.constant_initializer(0.0), dtype=tf.float32)
 
-        h_i_tiled = tf.tile(h_i, (1, batch_size)) #h is indeed a batch
-        hsu = tf.concat(1, [h_i_tiled, s_prev, e_prev])
+        # h_i_tiled = tf.tile(h_i, (batch_size, 1)) #h is indeed a batch
+        hsu = tf.concat(1, [h_i, s_prev, e_prev])
         #hsu is batch_size x (hidden_size * 5)
         r = tf.nn.tanh(tf.matmul(hsu, Wd)) # r is batch_size x hidden_size
-        r_tiled = tf.tile(r, (1, m)) #U is batch_size x question_length x (hidden_size * 2)
-        Ur = tf.concat(U, r_tiled) #Ur is batch_size x question_length x (hidden_size * 3)
+        r = tf.expand_dims(r, 1) # batch_size x 1 x hidden_size
+        r_tiled = tf.tile(r, (1, document_length, 1)) #U is batch_size x document_length x (hidden_size * 2)
+        Ur = tf.concat(2, [U, r_tiled]) #Ur is batch_size x question_length x (hidden_size * 3)
         m1 = tf.reduce_max(tf.matmul(Ur, W1) + b1, axis=3) #m1 is batch_size x question_length x hidden_size (the pool size was maxed over)
         m2 = tf.reduce_max(tf.matmul(m1, W2) + b2, axis=3) #m2 is batch_size x question_length x hidden_size (pool maxed over again)
 
@@ -35,7 +39,9 @@ def HMN(U, h_i, s_prev, e_prev, batch_size, scope_name):
         # new_u = tf.argmax(hmn, axis=0)
         new_u = tf.argmax(tf.squeeze(hmn), axis=1) # i think since we want the max over the question embedding
         # new u is just size [batch_size]
-        ind = tf.concat(1, [tf.range(batch_size), new_u])
+        batch_range = tf.expand_dims(tf.range(batch_size, dtype=tf.int32), 1)
+
+        ind = tf.concat(1, [tf.range(batch_size, dtype=tf.int32), new_u])
         new_u_vec = tf.gather_nd(U, ind)
 
         return new_u, new_u_vec

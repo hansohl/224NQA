@@ -1,4 +1,5 @@
 import tensorflow as tf
+import hmn
 
 def LSTMNode(h, c, u, scope, hidden_size = 200):
     with tf.variable_scope(scope) as scope:
@@ -32,11 +33,11 @@ def LSTMNode(h, c, u, scope, hidden_size = 200):
 
 
 
-class Decoder(object):
+class DCNDecoder(object):
     def __init__(self, output_size):
         self.output_size = output_size
 
-    def decode(self, knowledge_rep, masks, iters = 4, hidden_size = 200):
+    def decode(self, knowledge_rep, masks, batch_size, iters = 4, hidden_size = 200):
         """
         takes in a knowledge representation
         and output a probability estimation over
@@ -48,24 +49,39 @@ class Decoder(object):
                               decided by how you choose to implement the encoder
         :return:
         """
-
+        encoding_size = hidden_size * 2
         with tf.variable_scope('decoder') as scope:
-            batch_size = tf.shape(knowledge_rep)[0]
+            # extract the size tensors
+            # batch_size = tf.shape(knowledge_rep)[0]
+            paragraph_size = tf.shape(knowledge_rep)[1]
             U = knowledge_rep
 
             hmn_s = "hmn_s"
             hmn_e = "hmn_e"
             lstm_d = "lstm_d"
+            print("CHECKING BATCH_SIZE:" + str(batch_size))
 
-            u_s = tf.Variable(U[:, 0, :], trainable=False)
-            u_e = tf.Variable(U[:, -1, :], trainable=False)
-            s = tf.zeros([batch_size])
-            e = tf.zeros([batch_size])
+            # set the initial values
+            s = tf.zeros([batch_size], dtype=tf.int32)
+            e = tf.fill([batch_size], paragraph_size - 1)
+
+            batch_range = tf.range(batch_size, dtype=tf.int32)
+            batch_range = tf.expand_dims(batch_range, 1)
+
+            s_index = tf.concat(1, [batch_range, tf.expand_dims(s, 1)])
+            e_index = tf.concat(1, [batch_range, tf.expand_dims(e, 1)])
+
+            # new_u_vec = tf.gather_nd(U, ind)
+            u_s = tf.gather_nd(U, s_index)
+            u_e = tf.gather_nd(U, e_index)
+
             h = tf.zeros([batch_size, hidden_size])
             c = tf.zeros([batch_size, hidden_size])
+
+            # iterate and update s and e
             for i in range(iters):
-                s, u_s_new = HMN(U, h, u_s, u_e, hmn_s)
-                e, u_e_new = HMN(U, h, u_s, u_e, hmn_e)
+                s, u_s_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_s)
+                e, u_e_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_e)
 
                 u_s = u_s_new
                 u_e = u_e_new
@@ -79,4 +95,5 @@ class Decoder(object):
             scope.reuse_variables()
 
 
-        return tf.squeeze(s), tf.squeeze(e) #cast to make data scalar?
+        # return tf.squeeze(s), tf.squeeze(e) #cast to make data scalar?
+        return tf.one_hot(s, paragraph_size), tf.one_hot(e, paragraph_size) #cast to make data scalar?

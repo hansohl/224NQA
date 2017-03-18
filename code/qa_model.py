@@ -338,18 +338,18 @@ class QASystem(object):
 
         test_x = (q_batch, q_lens, p_batch, p_lens)
         pred_s, pred_e = self.answer(session, test_x)
-        
+
         pred_word_inds = [p_batch[i][pred_s[i]:pred_e[i]+1] for i in range(sample)]
         label_word_inds = [p_batch[i][np.argmax(s_label_batch[i]):np.argmax(e_label_batch[i])+1] for i in range(sample)]
         #print(label_word_inds)
         #print(pred_word_inds)
-        
+
         pred_words = [" ".join(map(str, pred_inds)) for pred_inds in pred_word_inds]
         label_words = [" ".join(map(str, label_inds)) for label_inds in label_word_inds]
         print(pred_words)
         print(label_words)
-        
-        
+
+
         f1s = [f1_score(pred_words[i], label_words[i]) for i in range(sample)]
         ems = [exact_match_score(pred_words[i], label_words[i]) for i in range(sample)]
 
