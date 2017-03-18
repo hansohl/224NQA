@@ -29,7 +29,9 @@ def LSTMNode(h, c, u, scope, hidden_size = 200):
 
         ct = f * c + i * c_p
         ht = o * tf.tanh(ct)
-        return ht, ct
+        scope.reuse_variables()
+
+    return ht, ct
 
 
 
@@ -50,49 +52,49 @@ class DCNDecoder(object):
         :return:
         """
         encoding_size = hidden_size * 2
-        with tf.variable_scope('decoder') as scope:
-            # extract the size tensors
-            # batch_size = tf.shape(knowledge_rep)[0]
-            paragraph_size = tf.shape(knowledge_rep)[1]
-            U = knowledge_rep
+        # with tf.variable_scope('decoder') as scope:
+        # extract the size tensors
+        # batch_size = tf.shape(knowledge_rep)[0]
+        paragraph_size = tf.shape(knowledge_rep)[1]
+        U = knowledge_rep
 
-            hmn_s = "hmn_s"
-            hmn_e = "hmn_e"
-            lstm_d = "lstm_d"
-            print("CHECKING BATCH_SIZE:" + str(batch_size))
+        hmn_s = "hmn_s"
+        hmn_e = "hmn_e"
+        lstm_d = "lstm_d"
+        print("CHECKING BATCH_SIZE:" + str(batch_size))
 
-            # set the initial values
-            s = tf.zeros([batch_size], dtype=tf.int32)
-            e = tf.fill([batch_size], paragraph_size - 1)
+        # set the initial values
+        s = tf.zeros([batch_size], dtype=tf.int32)
+        e = tf.fill([batch_size], paragraph_size - 1)
 
-            batch_range = tf.range(batch_size, dtype=tf.int32)
-            batch_range = tf.expand_dims(batch_range, 1)
+        batch_range = tf.range(batch_size, dtype=tf.int32)
+        batch_range = tf.expand_dims(batch_range, 1)
 
-            s_index = tf.concat(1, [batch_range, tf.expand_dims(s, 1)])
-            e_index = tf.concat(1, [batch_range, tf.expand_dims(e, 1)])
+        s_index = tf.concat(1, [batch_range, tf.expand_dims(s, 1)])
+        e_index = tf.concat(1, [batch_range, tf.expand_dims(e, 1)])
 
-            # new_u_vec = tf.gather_nd(U, ind)
-            u_s = tf.gather_nd(U, s_index)
-            u_e = tf.gather_nd(U, e_index)
+        # new_u_vec = tf.gather_nd(U, ind)
+        u_s = tf.gather_nd(U, s_index)
+        u_e = tf.gather_nd(U, e_index)
 
-            h = tf.zeros([batch_size, hidden_size])
-            c = tf.zeros([batch_size, hidden_size])
+        h = tf.zeros([batch_size, hidden_size])
+        c = tf.zeros([batch_size, hidden_size])
 
-            # iterate and update s and e
-            for i in range(iters):
-                s, u_s_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_s)
-                e, u_e_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_e)
+        # iterate and update s and e
+        for i in range(iters):
+            s, u_s_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_s)
+            e, u_e_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_e)
 
-                u_s = u_s_new
-                u_e = u_e_new
+            u_s = u_s_new
+            u_e = u_e_new
 
-                u_se = tf.concat(1, (u_s, u_e))
-                h, c = LSTMNode(h, c, u_se, lstm_d, hidden_size)
-
-
+            u_se = tf.concat(1, (u_s, u_e))
+            h, c = LSTMNode(h, c, u_se, lstm_d + str(i), hidden_size)
 
 
-            scope.reuse_variables()
+
+
+            # scope.reuse_variables()
 
 
         # return tf.squeeze(s), tf.squeeze(e) #cast to make data scalar?
