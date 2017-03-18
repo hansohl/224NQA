@@ -5,8 +5,10 @@ HIDDEN_LAYER_SIZE = 200
 # batch_size = 10
 # question_length = 600
 
-def HMN(U, h_i, s_prev, e_prev, batch_size, scope_name):
+def HMN(U, h_i, s_prev, e_prev, iteration, scope_name):
     with tf.variable_scope(scope_name) as scope:
+        if iteration > 0:
+            scope.reuse_variables()
         # u_s = U[:,s_prev]
         # u_e = U[:,e_prev]
         batch_size = tf.shape(U)[0]
@@ -56,6 +58,6 @@ def HMN(U, h_i, s_prev, e_prev, batch_size, scope_name):
         ind = tf.concat(1, [batch_range, new_u])
         new_u_vec = tf.gather_nd(U, ind)
 
-        scope.reuse_variables()
+        # scope.reuse_variables()
 
         return new_u, new_u_vec

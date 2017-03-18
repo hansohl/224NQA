@@ -1,8 +1,10 @@
 import tensorflow as tf
 import hmn
 
-def LSTMNode(h, c, u, scope, hidden_size = 200):
+def LSTMNode(h, c, u, scope, iteration, hidden_size = 200):
     with tf.variable_scope(scope) as scope:
+        if iteration > 0:
+            scope.reuse_variables()
         Wi = tf.get_variable("Wi", [4 * hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         Ui = tf.get_variable("Ui", [hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         # bi = tf.get_variable("bi", [hidden_size])
@@ -29,7 +31,7 @@ def LSTMNode(h, c, u, scope, hidden_size = 200):
 
         ct = f * c + i * c_p
         ht = o * tf.tanh(ct)
-        scope.reuse_variables()
+        # scope.reuse_variables()
 
     return ht, ct
 
@@ -82,16 +84,14 @@ class DCNDecoder(object):
 
         # iterate and update s and e
         for i in range(iters):
-            s, u_s_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_s)
-            e, u_e_new = hmn.HMN(U, h, u_s, u_e, batch_size, hmn_e)
+            s, u_s_new = hmn.HMN(U, h, u_s, u_e, i, hmn_s)
+            e, u_e_new = hmn.HMN(U, h, u_s, u_e, i, hmn_e)
 
             u_s = u_s_new
             u_e = u_e_new
 
             u_se = tf.concat(1, (u_s, u_e))
-            h, c = LSTMNode(h, c, u_se, lstm_d + str(i), hidden_size)
-
-
+            h, c = LSTMNode(h, c, u_se, lstm_d, i, hidden_size)
 
 
             # scope.reuse_variables()
