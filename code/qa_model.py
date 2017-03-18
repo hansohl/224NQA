@@ -66,7 +66,7 @@ class QASystem(object):
         self.grad_norm = tf.global_norm(grads)
         tf.summary.scalar('grad_norm', self.grad_norm)
         self.training_op = self.optimizer.apply_gradients(grads_and_vars)
-        
+
         self.summary = tf.merge_all_summaries()
         #default (boring!) trainingop
         #self.training_op = self.optimizer.minimize(self.loss)
@@ -144,12 +144,20 @@ class QASystem(object):
         and tune your hyperparameters according to the validation set performance
         :return:
         """
+        q, q_lens, p, p_lens = valid_x
+        s_labels, e_labels = valid_y
         input_feed = {}
-
         # fill in this feed_dictionary like:
-        # input_feed['valid_x'] = valid_x
+        # input_feed['train_x'] = train_x
+        input_feed[self.q_placeholder] = q
+        input_feed[self.q_mask_placeholder] = q_lens
+        input_feed[self.p_placeholder] = p
+        input_feed[self.p_mask_placeholder] = p_lens
+        input_feed[self.s_labels_placeholder] = s_labels
+        input_feed[self.e_labels_placeholder] = e_labels
 
-        output_feed = []
+        #set the quantities we track/return during training
+        output_feed = [self.loss, self.summary]
 
         outputs = session.run(output_feed, input_feed)
 
@@ -202,10 +210,16 @@ class QASystem(object):
         """
         valid_cost = 0
 
-        for valid_x, valid_y in valid_dataset:
-          valid_cost = self.test(sess, valid_x, valid_y)
-
-
+        val_q, val_p, val_span = valid_dataset
+        max_iters = np.ceil(len(val_q)/float(self.FLAGS.batch_size))
+        print("Max iterations: " + str(max_iters))
+        for iteration in range(int(max_iters)):
+            print("Current iteration: " + str(iteration))
+            q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_validation_batch(dataset, iteration)
+            #retrieve useful info from training - see optimize() function to set what we're tracking
+            loss, summ_str = self.test(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
+            valid_cost += loss
+        valid_cost = valid_cost / int(max_iters)
         return valid_cost
 
     def make_eval_batch(self, dataset, sample_size):
@@ -276,6 +290,31 @@ class QASystem(object):
             logging.info("F1: {}, EM: {}, for {} samples".format(f1, em, sample))
         return f1, em
 
+
+    def make_validation_batch(self, valid_dataset, iteration):
+        batch_size = self.FLAGS.batch_size
+        val_q, val_p, val_span = valid_dataset
+
+        start_index = iteration*batch_size
+        #make padded q batch
+        qs = val_q[start_index:start_index+batch_size]
+        q_seq_lens = np.array([len(q) for q in qs])
+        q_seq_mlen = np.max(q_seq_lens)
+        q_batch = np.array([q + [PAD_ID]*(q_seq_mlen - len(q)) for q in qs])
+
+        #make padded p batch
+        ps = val_p[start_index:start_index+batch_size]
+        p_seq_lens = np.array([len(p) for p in ps])
+        p_seq_mlen = np.max(p_seq_lens)
+        p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
+
+        #make start and end labels
+        spans = val_span[start_index:start_index+batch_size]
+        s_inds, e_inds = zip(*spans)
+        starts = np.array(s_inds, dtype=np.int32)
+        ends = np.array(e_inds, dtype=np.int32)
+
+        return q_batch, q_seq_lens, p_batch, p_seq_lens, starts, ends
 
     #function to make batch inputs/labels of up to self.FLAGS.batch_size examples
     #output batches are questions, context paras, one hot start labels, one hot end labels
@@ -350,6 +389,7 @@ class QASystem(object):
 
         #run main training loop: (only 10 epochs for now)
         train_q, train_p, train_span, val_q, val_p, val_span = dataset
+        valid_dataset = (val_q, val_p, val_span)
         max_iters = np.ceil(len(train_q)/float(self.FLAGS.batch_size))
         print("Max iterations: " + str(max_iters))
         for epoch in range(10):
@@ -365,11 +405,10 @@ class QASystem(object):
                 _, loss, pred_e, label_e, grad_norm, summ_str = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
                 print("Current Loss: " + str(loss))
                 print(grad_norm)
+
                 summary_writer.add_summary(summ_str, iteration)
                 #eval on first 100 in val set every 100 iterations
                 if iteration%100==99:
+                    valid_loss = self.validate(session, valid_dataset)
+                    print("Validation Loss: " + str(valid_loss))
                     self.evaluate_answer(session, dataset, log=True)
-                
-                
-                
-                
