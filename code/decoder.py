@@ -36,7 +36,7 @@ class Decoder(object):
     def __init__(self, output_size):
         self.output_size = output_size
 
-    def decode(self, knowledge_rep, masks, batch_size, iters = 4, hidden_size = 200):
+    def decode(self, knowledge_rep, masks, iters = 4, hidden_size = 200):
         """
         takes in a knowledge representation
         and output a probability estimation over
@@ -50,28 +50,33 @@ class Decoder(object):
         """
 
         with tf.variable_scope('decoder') as scope:
+            batch_size = tf.shape(knowledge_rep)[0]
             U = knowledge_rep
 
             hmn_s = "hmn_s"
             hmn_e = "hmn_e"
             lstm_d = "lstm_d"
 
-            s = tf.constant(U[:, 0, :])
-            e = tf.constant(U[:, -1, :])
+            u_s = tf.Variable(U[:, 0, :], trainable=False)
+            u_e = tf.Variable(U[:, -1, :], trainable=False)
+            s = tf.zeros([batch_size])
+            e = tf.zeros([batch_size])
             h = tf.zeros([batch_size, hidden_size])
             c = tf.zeros([batch_size, hidden_size])
             for i in range(iters):
-                s_n = HMN(U, h, s, e, hmn_s)
-                e_n = HMN(U, h, s, e, hmn_e)
+                s, u_s_new = HMN(U, h, u_s, u_e, hmn_s)
+                e, u_e_new = HMN(U, h, u_s, u_e, hmn_e)
 
-                s = tf.constant(U[:, s_n, :])
-                e = tf.constant(U[:, e_n, :])
+                u_s = u_s_new
+                u_e = u_e_new
 
-                u_se = tf.concat(1, (s_n, e_n))
+                u_se = tf.concat(1, (u_s, u_e))
                 h, c = LSTMNode(h, c, u_se, lstm_d, hidden_size)
+
+
 
 
             scope.reuse_variables()
 
 
-        return tf.squeeze(s_outputs), tf.squeeze(e_outputs) #cast to make data scalar?
+        return tf.squeeze(s), tf.squeeze(e) #cast to make data scalar?
