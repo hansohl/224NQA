@@ -196,7 +196,7 @@ class QASystem(object):
 
         return (a_s, a_e)
 
-    def validate(self, sess, valid_dataset):
+    def validate(self, session, valid_dataset):
         """
         Iterate through the validation dataset and determine what
         the validation cost is.
