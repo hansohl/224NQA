@@ -50,11 +50,11 @@ def HMN(U, h_i, s_prev, e_prev, iteration, scope_name):
         # new_u = tf.argmax(hmn, axis=0)
         batch_size = tf.shape(U, out_type=tf.int32)[0]
 
-        alpha_beta = tf.squeeze(hmn)
+        alpha_beta = tf.reshape(hmn, [batch_size, document_length, POOL_SIZE])
         new_u = tf.argmax(alpha_beta, axis=1) # i think since we want the max over the question embedding
         new_u = tf.expand_dims(new_u, 1)
         new_u = tf.cast(new_u, tf.int32)
-        
+
         # new u is just size [batch_size]
         batch_range = tf.expand_dims(tf.range(batch_size, dtype=tf.int32), 1)
 
