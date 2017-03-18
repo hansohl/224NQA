@@ -212,9 +212,10 @@ class QASystem(object):
 
         val_q, val_p, val_span = valid_dataset
         max_iters = np.ceil(len(val_q)/float(self.FLAGS.batch_size))
-        print("Max iterations: " + str(max_iters))
+        print("VALIDATING")
+        print("Validation iterations: " + str(max_iters))
         for iteration in range(int(max_iters)):
-            print("Current iteration: " + str(iteration))
+            print("val iteration: " + str(iteration))
             q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_validation_batch(valid_dataset, iteration)
             #retrieve useful info from training - see test() function to set what we're tracking
             loss, summ_str = self.test(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
@@ -412,6 +413,6 @@ class QASystem(object):
                 summary_writer.add_summary(summ_str, iteration)
                 #eval on first 100 in val set every 100 iterations
                 if iteration%100==99:
-                    valid_loss = self.validate(session, valid_dataset)
-                    print("Validation Loss: " + str(valid_loss))
+                    # valid_loss = self.validate(session, valid_dataset)
+                    # print("Validation Loss: " + str(valid_loss))
                     self.evaluate_answer(session, dataset, log=True)
