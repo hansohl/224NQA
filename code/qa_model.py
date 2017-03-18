@@ -23,91 +23,7 @@ def get_optimizer(opt):
     else:
         assert (False)
     return optfn
-
-'''
-class Encoder(object):
-    def __init__(self, size, vocab_dim):
-        self.size = size
-        self.vocab_dim = vocab_dim
-
-    def encode(self, inputs, masks, encoder_state_input):
-        """
-        In a generalized encode function, you pass in your inputs,
-        masks, and an initial
-        hidden state input into this function.
-
-        :param inputs: Symbolic representations of your input
-        :param masks: this is to make sure tf.nn.dynamic_rnn doesn't iterate
-                      through masked steps
-        :param encoder_state_input: (Optional) pass this as initial hidden state
-                                    to tf.nn.dynamic_rnn to build conditional representations
-        :return: an encoded representation of your input.
-                 It can be context-level representation, word-level representation,
-                 or both.
-        """
-
-        #read inputs
-        question, paragraph = inputs
-        q_mask, p_mask = masks
-
-        #run biLSTM over question
-        with tf.variable_scope('enc_q') as scope:
-            encode_q_f_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
-            encode_q_b_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
-            q_outputs, q_end_state = tf.nn.bidirectional_dynamic_rnn(encode_q_f_cell, encode_q_b_cell, question, sequence_length=q_mask, dtype=tf.float32) #LSTM returns a pair of hidden states (c, h)
-            scope.reuse_variables()
-
-        #concat end states to get question representation
-        q_fwd_state, q_bkwd_state = q_end_state
-        self.q_rep = tf.concat(1, (q_fwd_state[0], q_bkwd_state[0])) #q rep is Batch by 2*H_size
-
-        #run biLSTM over paragraph
-        with tf.variable_scope('enc_p') as scope:
-            encode_p_f_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
-            encode_p_b_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
-            p_outputs, p_end_state = tf.nn.bidirectional_dynamic_rnn(encode_p_f_cell, encode_p_b_cell, paragraph, sequence_length=p_mask, dtype=tf.float32) #condition on q rep?
-            scope.reuse_variables()
-        self.p_rep = tf.concat(2, p_outputs) #concat fwd and bkwd outputs
-
-
-        #calc scores between paragraph hidden states and q-rep
-        self.attention_weights = tf.get_variable("attent_weights", shape=[2*self.size, 2*self.size], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
-        q_attention = tf.matmul(self.q_rep, self.attention_weights)
-        unnorm_attention = tf.batch_matmul(self.p_rep, tf.expand_dims(q_attention, axis=-1)) #dims are batch by seq by 1
-        self.attention = unnorm_attention/tf.sqrt(tf.reduce_sum(tf.square(unnorm_attention), axis=1, keep_dims=True))
-        self.knowledge_rep = tf.multiply(self.p_rep, self.attention)
-
-        return self.knowledge_rep, self.attention
-
-
-class Decoder(object):
-    def __init__(self, output_size):
-        self.output_size = output_size
-
-    def decode(self, knowledge_rep, masks):
-        """
-        takes in a knowledge representation
-        and output a probability estimation over
-        all paragraph tokens on which token should be
-        the start of the answer span, and which should be
-        the end of the answer span.
-
-        :param knowledge_rep: it is a representation of the paragraph and question,
-                              decided by how you choose to implement the encoder
-        :return:
-        """
-
-        with tf.variable_scope('dec_s') as scope:
-            decode_cell_s = tf.nn.rnn_cell.BasicLSTMCell(1) #self.output_size?
-            s_outputs, s_end_state = tf.nn.dynamic_rnn(decode_cell_s, knowledge_rep, sequence_length=masks, dtype=tf.float32)
-            scope.reuse_variables()
-        with tf.variable_scope('dec_e') as scope:
-            decode_cell_e = tf.nn.rnn_cell.BasicLSTMCell(1)
-            e_outputs, e_end_state = tf.nn.dynamic_rnn(decode_cell_e, knowledge_rep, sequence_length=masks, dtype=tf.float32)
-            scope.reuse_variables()
-
-        return tf.squeeze(s_outputs), tf.squeeze(e_outputs) #cast to make data scalar?
-'''
+    
 
 class QASystem(object):
     def __init__(self, encoder, decoder, *args):
@@ -129,8 +45,6 @@ class QASystem(object):
         self.p_placeholder = tf.placeholder(tf.int32, shape=[None, None], name="p_place")
         self.q_mask_placeholder = tf.placeholder(tf.int32, shape=[None], name="q_mask") #batch (None)
         self.p_mask_placeholder = tf.placeholder(tf.int32, shape=[None], name="p_mask")
-        #self.s_labels_placeholder = tf.placeholder(tf.float32, shape=[None, None], name="s_place") #batch by output seq
-        #self.e_labels_placeholder = tf.placeholder(tf.float32, shape=[None, None], name="e_place")
         self.s_labels_placeholder = tf.placeholder(tf.int32, shape=[None], name="s_place")
         self.e_labels_placeholder = tf.placeholder(tf.int32, shape=[None], name="e_place")
         
@@ -179,8 +93,6 @@ class QASystem(object):
         :return:
         """
         with vs.variable_scope("loss"):
-            #s_losses = tf.nn.softmax_cross_entropy_with_logits(self.s_ind_probs, self.s_labels_placeholder)
-            #e_losses = tf.nn.softmax_cross_entropy_with_logits(self.e_ind_probs, self.e_labels_placeholder)
             s_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(self.s_ind_probs, self.s_labels_placeholder)
             e_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(self.e_ind_probs, self.e_labels_placeholder)
             self.loss = tf.reduce_mean(s_losses) + tf.reduce_mean(e_losses)
@@ -315,8 +227,6 @@ class QASystem(object):
         #make one-hot start and end labels
         spans = val_span[start_index:start_index+batch_size]
         s_inds, e_inds = zip(*spans)
-        starts = np.eye(p_seq_mlen)[np.array(s_inds)]
-        ends = np.eye(p_seq_mlen)[np.array(e_inds)]
 
         return q_batch, q_seq_lens, p_batch, p_seq_lens, np.array(s_inds, dtype=np.int32), np.array(e_inds, dtype=np.int32)
 
@@ -347,13 +257,9 @@ class QASystem(object):
         
         pred_word_inds = [p_batch[i][pred_s[i]:pred_e[i]+1] for i in range(sample)]
         label_word_inds = [p_batch[i][s_label_batch[i]:e_label_batch[i]+1] for i in range(sample)]
-        #print(label_word_inds)
-        #print(pred_word_inds)
         
         pred_words = [" ".join(map(str, pred_inds)) for pred_inds in pred_word_inds]
         label_words = [" ".join(map(str, label_inds)) for label_inds in label_word_inds]
-        #print(pred_words)
-        #print(label_words)
         
         
         f1s = [f1_score(pred_words[i], label_words[i]) for i in range(sample)]
@@ -391,8 +297,6 @@ class QASystem(object):
         #make one-hot start and end labels
         spans = train_span[start_index:start_index+batch_size]
         s_inds, e_inds = zip(*spans)
-        starts = np.eye(p_seq_mlen)[np.array(s_inds)].astype(np.float32)
-        ends = np.eye(p_seq_mlen)[np.array(e_inds)].astype(np.float32)
 
         return q_batch, q_seq_lens, p_batch, p_seq_lens, np.array(s_inds, dtype=np.int32), np.array(e_inds, dtype=np.int32)
 
@@ -455,9 +359,6 @@ class QASystem(object):
                 #retrieve useful info from training - see optimize() function to set what we're tracking
                 _, loss, pred_e, label_e, grad_norm, summ_str = self.optimize(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
                 print("Current Loss: " + str(loss))
-                #print(pred_s)
-                #print(pred_e)
-                #print(label_e)
                 print(grad_norm)
                 summary_writer.add_summary(summ_str, iteration)
                 if iteration%100==99:
