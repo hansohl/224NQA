@@ -225,22 +225,25 @@ class QASystem(object):
     def make_eval_batch(self, dataset, sample_size):
         batch_size = sample_size
         train_q, train_p, train_span, val_q, val_p, val_span = dataset
-        start_index = 0 #TODO: make this random sampling later
+        # start_index = 0
 
+        length = len(val_q) #whatever call this needs to be to know how many samples there are to choose from
+        rand_indices = np.random.randint(0, length, size=batch_size)
+        # print(rand_indices)
         #make padded q batch
-        qs = val_q[start_index:start_index+batch_size]
+        qs = np.take(val_q, rand_indices, axis=0)#val_q[start_index:start_index+batch_size]
         q_seq_lens = np.array([len(q) for q in qs])
         q_seq_mlen = np.max(q_seq_lens)
         q_batch = np.array([q + [PAD_ID]*(q_seq_mlen - len(q)) for q in qs])
 
         #make padded p batch
-        ps = val_p[start_index:start_index+batch_size]
+        ps = np.take(val_p, rand_indices, axis=0)#val_p[start_index:start_index+batch_size]
         p_seq_lens = np.array([len(p) for p in ps])
         p_seq_mlen = np.max(p_seq_lens)
         p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
 
         #make start and end labels
-        spans = val_span[start_index:start_index+batch_size]
+        spans = np.take(val_span, rand_indices, axis=0)#val_span[start_index:start_index+batch_size]
         s_inds, e_inds = zip(*spans)
         starts = np.array(s_inds, dtype=np.int32)
         ends = np.array(e_inds, dtype=np.int32)

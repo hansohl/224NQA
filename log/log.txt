@@ -188,3 +188,18 @@ Created model with fresh parameters.
 Num params: 1126416
 Number of params: 1126416 (retreival took 0.531260 secs)
 F1: 0.022118325206, EM: 0.0, for 100 samples
+Created model with fresh parameters.
+Num params: 7908632
+Number of params: 7908632 (retreival took 4.274345 secs)
+Created model with fresh parameters.
+Num params: 7908632
+Number of params: 7908632 (retreival took 4.256217 secs)
+Created model with fresh parameters.
+Num params: 7908632
+Number of params: 7908632 (retreival took 4.418741 secs)
+Created model with fresh parameters.
+Num params: 7908632
+Number of params: 7908632 (retreival took 4.284497 secs)
+Created model with fresh parameters.
+Num params: 7908632
+Number of params: 7908632 (retreival took 4.164482 secs)
