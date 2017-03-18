@@ -30,7 +30,7 @@ class Encoder(object):
         #run encode LSTM to get representations
         with tf.variable_scope('encoder') as scope:
             with tf.variable_scope('encoder_read_LSTM') as scope:
-                encode_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
+                encode_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
                 q_outputs, q_end_state = tf.nn.dynamic_rnn(encode_cell, question, sequence_length=q_mask, dtype=tf.float32)
                 #note LSTM returns a pair of hidden states (c, h) in end_state
                 scope.reuse_variables()
@@ -42,44 +42,45 @@ class Encoder(object):
             p_sentinel = tf.get_variable("p_sent", initializer=tf.random_uniform([1, 1, self.size]))
             q_sents = tf.tile(q_sentinel, [tf.shape(question)[0], 1, 1])
             p_sents = tf.tile(p_sentinel, [tf.shape(paragraph)[0], 1, 1])
-            q_outputs = tf.concat(1, [q_outputs, q_sents]) #concat along seq axis
-            P = tf.concat(1, [p_outputs, p_sents])
+            Qprime = tf.concat(1, [q_outputs, q_sents]) #concat along seq axis
+            P = tf.concat(1, [p_outputs, p_sents]) #batch by p by hidden
             
             #get final Q rep:
             #wizardry and voodoo to do einsum 'aij,jk->aik' (batch by seq by hidden matrix multiplied with hidden by hidden)
             W = tf.get_variable("W_qenc", shape=[self.size, self.size], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
-            b = tf.get_variable("b_qenc", shape=[self.size], dtype=tf.float32, validate_shape=False)
-            W_batch = tf.tile(tf.expand_dims(W,0), [tf.shape(question)[0], 1, 1])
-            Q = tf.tanh(tf.batch_matmul(q_outputs, W_batch) + b)
-            #Q = tf.tanh(tf.einsum('aij,jk->aik', q_outputs, W) + b)
+            b = tf.get_variable("b_qenc", initializer=tf.zeros([self.size]), dtype=tf.float32)
+            Qprime_b = tf.reshape(Qprime, [-1, self.size])
+            Q = tf.reshape(tf.tanh(tf.matmul(Qprime_b, W) + b), [-1, tf.shape(Qprime)[1], self.size]) #batch by q by hidden
             scope.reuse_variables()
             
-        #affinity matrix from batch matmuln and resulting attention weights
-        L = tf.batch_matmul(Q, P, adj_y=True)
-        print(L.get_shape())
-        A_P = tf.nn.softmax(L)
-        print(A_P.get_shape())
-        A_Q = tf.nn.softmax(tf.transpose(L))
-        print(A_Q.get_shape())
+        #affinity matrix from batch matmul and resulting attention weights
+        L = tf.batch_matmul(Q, P, adj_y=True) #batch by q by p
+        A_P = tf.nn.softmax(L) #batch by q by p, normalized across p
+        A_Q = tf.nn.softmax(L, dim=1) #batch by q by p, normalized across q
             
         #get attention contexts
         C_Q = tf.batch_matmul(A_Q, P)
-        expanded_Q = tf.concat(2, [Q, C_Q])
-        C_D = tf.batch_matmul(A_P, expanded_Q)
+        expanded_Q = tf.concat(2, [Q, C_Q]) #batch by q by 2*hidden
+        C_P = tf.batch_matmul(A_P, expanded_Q, adj_x=True) #batch by p by 2*hidden
+        C_P.set_shape([None, None, 2*self.size]) #?
         
-        #run biLSTM over context C_D
+        #run biLSTM over context C_P
+        BLSTM_input = tf.concat(2, [P, C_P])
         with tf.variable_scope('encoder_BLSTM') as scope:
             with tf.variable_scope('encoder_BLSTM_F') as scope:
-                encode2_f_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
+                encode2_f_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
                 scope.reuse_variables()
             with tf.variable_scope('encoder_BLSTM_B') as scope:
-                encode2_b_cell = tf.nn.rnn_cell.BasicLSTMCell(self.size)
+                encode2_b_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
                 scope.reuse_variables()
-            C_D.set_shape([None, None, 2*self.size])
-            outputs, end_state = tf.nn.bidirectional_dynamic_rnn(encode2_f_cell, encode2_b_cell, C_D, sequence_length=p_mask, dtype=tf.float32) #init state?
+            
+            outputs, end_state = tf.nn.bidirectional_dynamic_rnn(encode2_f_cell, encode2_b_cell, BLSTM_input, sequence_length=p_mask, dtype=tf.float32) #init state?
             scope.reuse_variables()
-        #form knowledge rep U from C_D biLSTM, cut off outputs corresponding to sentinel (last in sequence dim)
-        self.U = tf.concat(2, outputs)[:,:-1,:]
+            
+        #form knowledge rep U from biLSTM, cut off outputs corresponding to sentinel (last in sequence dim)
+        U_ext = tf.concat(2, outputs)
+        self.U = tf.slice(U_ext, [0,0,0], [-1, tf.shape(U_ext)[1]-1, -1])
+        self.U.set_shape([None, None, 2*self.size])
         return self.U
         
         
