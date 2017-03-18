@@ -48,7 +48,7 @@ def HMN(U, h_i, s_prev, e_prev, iteration, scope_name):
         # after, we have batch_size x document_length x 1 (these are the alpha t's)
 
         # new_u = tf.argmax(hmn, axis=0)
-        batch_size = tf.shape(U, out_type=tf.int32)[0]
+        #batch_size = tf.shape(U, out_type=tf.int32)[0]
 
         alpha_beta = tf.reshape(hmn, [batch_size, document_length])
         new_u = tf.argmax(alpha_beta, axis=1) # i think since we want the max over the question embedding

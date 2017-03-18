@@ -157,7 +157,7 @@ class QASystem(object):
         input_feed[self.e_labels_placeholder] = e_labels
 
         #set the quantities we track/return during training
-        output_feed = [self.loss, self.summary]
+        output_feed = [self.loss]
 
         outputs = session.run(output_feed, input_feed)
 
@@ -208,7 +208,7 @@ class QASystem(object):
 
         :return:
         """
-        valid_cost = 0
+        valid_cost = 0.
 
         val_q, val_p, val_span = valid_dataset
         max_iters = np.ceil(len(val_q)/float(self.FLAGS.batch_size))
@@ -218,9 +218,9 @@ class QASystem(object):
             print("val iteration: " + str(iteration))
             q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_validation_batch(valid_dataset, iteration)
             #retrieve useful info from training - see test() function to set what we're tracking
-            loss, summ_str = self.test(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
+            [loss] = self.test(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
             valid_cost += loss
-        valid_cost = valid_cost / int(max_iters)
+        valid_cost = valid_cost / max_iters
         return valid_cost
 
     def make_eval_batch(self, dataset, sample_size):
@@ -413,6 +413,7 @@ class QASystem(object):
                 summary_writer.add_summary(summ_str, iteration)
                 #eval on first 100 in val set every 100 iterations
                 if iteration%100==99:
-                    # valid_loss = self.validate(session, valid_dataset)
-                    # print("Validation Loss: " + str(valid_loss))
                     self.evaluate_answer(session, dataset, log=True)
+                if iteration%400==399:
+                    valid_loss = self.validate(session, valid_dataset)
+                    print("Validation Loss: " + str(valid_loss))
