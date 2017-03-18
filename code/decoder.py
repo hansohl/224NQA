@@ -84,8 +84,8 @@ class DCNDecoder(object):
 
         # iterate and update s and e
         for i in range(iters):
-            s, u_s_new = hmn.HMN(U, h, u_s, u_e, i, hmn_s)
-            e, u_e_new = hmn.HMN(U, h, u_s, u_e, i, hmn_e)
+            s, u_s_new, alpha = hmn.HMN(U, h, u_s, u_e, i, hmn_s)
+            e, u_e_new, beta = hmn.HMN(U, h, u_s, u_e, i, hmn_e)
 
             u_s = u_s_new
             u_e = u_e_new
@@ -98,4 +98,5 @@ class DCNDecoder(object):
 
 
         # return tf.squeeze(s), tf.squeeze(e) #cast to make data scalar?
-        return tf.one_hot(s, paragraph_size), tf.one_hot(e, paragraph_size) #cast to make data scalar?
+        return alpha, beta
+        # return tf.one_hot(s, paragraph_size), tf.one_hot(e, paragraph_size) #cast to make data scalar?

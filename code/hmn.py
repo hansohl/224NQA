@@ -50,7 +50,8 @@ def HMN(U, h_i, s_prev, e_prev, iteration, scope_name):
         # new_u = tf.argmax(hmn, axis=0)
         batch_size = tf.shape(U, out_type=tf.int64)[0]
 
-        new_u = tf.argmax(tf.squeeze(hmn), axis=1) # i think since we want the max over the question embedding
+        alpha_beta = tf.squeeze(hmn)
+        new_u = tf.argmax(alpha_beta, axis=1) # i think since we want the max over the question embedding
         new_u = tf.expand_dims(new_u, 1)
         # new u is just size [batch_size]
         batch_range = tf.expand_dims(tf.range(batch_size, dtype=tf.int64), 1)
@@ -60,4 +61,4 @@ def HMN(U, h_i, s_prev, e_prev, iteration, scope_name):
 
         # scope.reuse_variables()
 
-        return new_u, new_u_vec
+        return new_u, new_u_vec, alpha_beta
