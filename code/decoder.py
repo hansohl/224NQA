@@ -56,14 +56,14 @@ class DCNDecoder(object):
         encoding_size = hidden_size * 2
         # with tf.variable_scope('decoder') as scope:
         # extract the size tensors
-        # batch_size = tf.shape(knowledge_rep)[0]
+        #should we get rid of the batch_size param to decoder?
+        batch_size = tf.shape(knowledge_rep)[0]
         paragraph_size = tf.shape(knowledge_rep)[1]
         U = knowledge_rep
 
         hmn_s = "hmn_s"
         hmn_e = "hmn_e"
         lstm_d = "lstm_d"
-        print("CHECKING BATCH_SIZE:" + str(batch_size))
 
         # set the initial values
         s = tf.zeros([batch_size], dtype=tf.int32)
