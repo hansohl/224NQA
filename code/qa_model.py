@@ -24,7 +24,7 @@ def get_optimizer(opt):
         assert (False)
     return optfn
 
-
+'''
 class Encoder(object):
     def __init__(self, size, vocab_dim):
         self.size = size
@@ -107,6 +107,7 @@ class Decoder(object):
             scope.reuse_variables()
 
         return tf.squeeze(s_outputs), tf.squeeze(e_outputs) #cast to make data scalar?
+'''
 
 class QASystem(object):
     def __init__(self, encoder, decoder, *args):
@@ -163,8 +164,8 @@ class QASystem(object):
         """
         inputs = (self.distr_q, self.distr_p)
 
-        encoding, attention = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
-        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder)
+        encoding = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
+        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder, self.FLAGS.batch_size)
 
         self.attention = attention #store attention vector for analysis
 

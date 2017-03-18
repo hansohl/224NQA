@@ -7,7 +7,10 @@ import json
 
 import tensorflow as tf
 
-from qa_model import Encoder, QASystem, Decoder
+#from qa_model import Encoder, QASystem, Decoder
+from encoder import Encoder
+from decoder import Decoder
+from qa_model import QASystem
 from os.path import join as pjoin
 
 import logging
