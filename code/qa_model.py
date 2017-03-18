@@ -83,7 +83,7 @@ class QASystem(object):
         inputs = (self.distr_q, self.distr_p)
 
         encoding = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
-        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder, self.FLAGS.batch_size)
+        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder)
 
 
     def setup_loss(self):

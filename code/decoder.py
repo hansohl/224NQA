@@ -41,7 +41,7 @@ class DCNDecoder(object):
     def __init__(self, output_size):
         self.output_size = output_size
 
-    def decode(self, knowledge_rep, masks, batch_size, iters = 4, hidden_size = 200):
+    def decode(self, knowledge_rep, masks, iters = 4, hidden_size = 200):
         """
         takes in a knowledge representation
         and output a probability estimation over
@@ -56,10 +56,11 @@ class DCNDecoder(object):
         encoding_size = hidden_size * 2
         # with tf.variable_scope('decoder') as scope:
         # extract the size tensors
-        #should we get rid of the batch_size param to decoder?
+        #should we get rid of the batch_size param to decoder? yes we should lol
         batch_size = tf.shape(knowledge_rep)[0]
         paragraph_size = tf.shape(knowledge_rep)[1]
         U = knowledge_rep
+        # masks = np.array(masks) - 1
 
         hmn_s = "hmn_s"
         hmn_e = "hmn_e"
