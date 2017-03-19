@@ -401,7 +401,6 @@ class QASystem(object):
         for epoch in range(10):
             #temp hack to only train on some small subset:
             #max_iters = some small constant
-            max_iters = 10
 
             for iteration in range(int(max_iters)):
                 print("Current iteration: " + str(iteration))
