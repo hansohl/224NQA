@@ -47,6 +47,7 @@ class QASystem(object):
         self.p_mask_placeholder = tf.placeholder(tf.int32, shape=[None], name="p_mask")
         self.s_labels_placeholder = tf.placeholder(tf.int32, shape=[None], name="s_place") #batch
         self.e_labels_placeholder = tf.placeholder(tf.int32, shape=[None], name="e_place")
+        self.dropout_placeholder = tf.placeholder(tf.float32, shape=[], name="dropout_place")
 
         # ==== assemble pieces ====
         with tf.variable_scope("qa", initializer=tf.uniform_unit_scaling_initializer(1.0)):
@@ -68,10 +69,10 @@ class QASystem(object):
         self.training_op = self.optimizer.apply_gradients(grads_and_vars)
         #default (boring!) trainingop
         #self.training_op = self.optimizer.minimize(self.loss)
-        
+
         self.summary = tf.summary.merge_all()
         self.saver = tf.train.Saver()
-        
+
 
 
 
@@ -85,7 +86,7 @@ class QASystem(object):
         inputs = (self.distr_q, self.distr_p)
 
         encoding = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
-        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder)
+        self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder, self.dropout_placeholder)
 
 
     def setup_loss(self):
@@ -132,6 +133,7 @@ class QASystem(object):
         input_feed[self.p_mask_placeholder] = p_lens
         input_feed[self.s_labels_placeholder] = s_labels
         input_feed[self.e_labels_placeholder] = e_labels
+        input_feed[self.dropout_placeholder] = 1 - self.FLAGS.dropout
 
         #set the quantities we track/return during training
         output_feed = [self.training_op, self.loss, self.e_ind_probs, self.e_labels_placeholder, self.grad_norm, self.summary]
@@ -157,6 +159,7 @@ class QASystem(object):
         input_feed[self.p_mask_placeholder] = p_lens
         input_feed[self.s_labels_placeholder] = s_labels
         input_feed[self.e_labels_placeholder] = e_labels
+        input_feed[self.dropout_placeholder] = 1.0
 
         #set the quantities we track/return during training
         output_feed = [self.loss]
@@ -179,6 +182,7 @@ class QASystem(object):
         input_feed[self.q_mask_placeholder] = q_lens
         input_feed[self.p_placeholder] = p
         input_feed[self.p_mask_placeholder] = p_lens
+        input_feed[self.dropout_placeholder] = 1.0
         # we don't have the ground truth to loook at, so we dont pass in labels
         # input_feed[self.s_labels_placeholder] = s_labels
         # input_feed[self.e_labels_placeholder] = e_labels
@@ -419,8 +423,7 @@ class QASystem(object):
                 if iteration%400==399:
                     valid_loss = self.validate(session, valid_dataset)
                     print("Validation Loss: " + str(valid_loss))
-            
+
             #done with epoch
             save_path = self.saver.save(session, self.FLAGS.train_dir + "/model_ep" + str(epoch) + ".ckpt")
             logging.info("Model saved in file {}".format(save_path))
-                    
