@@ -85,7 +85,7 @@ class QASystem(object):
         """
         inputs = (self.distr_q, self.distr_p)
 
-        encoding = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), None)
+        encoding = encoder.encode(inputs, (self.q_mask_placeholder, self.p_mask_placeholder), self.dropout_placeholder, None)
         self.s_ind_probs, self.e_ind_probs = decoder.decode(encoding, self.p_mask_placeholder, self.dropout_placeholder)
 
 
@@ -133,7 +133,7 @@ class QASystem(object):
         input_feed[self.p_mask_placeholder] = p_lens
         input_feed[self.s_labels_placeholder] = s_labels
         input_feed[self.e_labels_placeholder] = e_labels
-        input_feed[self.dropout_placeholder] = 1 - self.FLAGS.dropout
+        input_feed[self.dropout_placeholder] = (1. - self.FLAGS.dropout)
 
         #set the quantities we track/return during training
         output_feed = [self.training_op, self.loss, self.e_ind_probs, self.e_labels_placeholder, self.grad_norm, self.summary]
@@ -215,7 +215,6 @@ class QASystem(object):
         :return:
         """
         valid_cost = 0.
-
         val_q, val_p, val_span = valid_dataset
         max_iters = np.ceil(len(val_q)/float(self.FLAGS.batch_size))
         print("VALIDATING")
@@ -225,8 +224,8 @@ class QASystem(object):
             q_batch, q_lens, p_batch, p_lens, s_label_batch, e_label_batch = self.make_validation_batch(valid_dataset, iteration)
             #retrieve useful info from training - see test() function to set what we're tracking
             [loss] = self.test(session, (q_batch, q_lens, p_batch, p_lens), (s_label_batch, e_label_batch))
-            valid_cost += loss
-        valid_cost = valid_cost / max_iters
+            valid_cost += loss*len(q_batch)
+        valid_cost = valid_cost/len(val_q)
         return valid_cost
 
     def make_eval_batch(self, dataset, sample_size):
@@ -402,6 +401,7 @@ class QASystem(object):
         valid_dataset = (val_q, val_p, val_span)
         max_iters = np.ceil(len(train_q)/float(self.FLAGS.batch_size))
         print("Max iterations: " + str(max_iters))
+        best_valid_loss = 1e29
         for epoch in range(10):
             #temp hack to only train on some small subset:
             #max_iters = some small constant
@@ -422,7 +422,13 @@ class QASystem(object):
                     self.evaluate_answer(session, dataset, log=True)
                 if iteration%400==399:
                     valid_loss = self.validate(session, valid_dataset)
-                    print("Validation Loss: " + str(valid_loss))
+                    logging.info("Validation Loss: " + str(valid_loss))
+                    if valid_loss < best_valid_loss:
+                        b_save_path = self.saver.save(session, self.FLAGS.train_dir + "/model_best_val.ckpt")
+                        logging.info("New best validation loss {}, saving model to file {}".format(valid_loss, b_save_path))
+                        best_valid_loss = valid_loss
+                    
+                    
 
             #done with epoch
             save_path = self.saver.save(session, self.FLAGS.train_dir + "/model_ep" + str(epoch) + ".ckpt")

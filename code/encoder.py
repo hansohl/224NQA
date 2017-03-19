@@ -7,7 +7,7 @@ class Encoder(object):
         self.size = size #hidden state size (l)
         self.vocab_dim = vocab_dim
 
-    def encode(self, inputs, masks, encoder_state_input):
+    def encode(self, inputs, masks, keep_prob, encoder_state_input):
         """
         In a generalized encode function, you pass in your inputs,
         masks, and an initial
@@ -31,7 +31,8 @@ class Encoder(object):
         with tf.variable_scope('encoder') as scope:
             with tf.variable_scope('encoder_read_LSTM') as scope:
                 encode_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
-                q_outputs, q_end_state = tf.nn.dynamic_rnn(encode_cell, question, sequence_length=q_mask, dtype=tf.float32)
+                encode_cell_d = tf.nn.rnn_cell.DropoutWrapper(encode_cell, keep_prob, keep_prob)
+                q_outputs, q_end_state = tf.nn.dynamic_rnn(encode_cell_d, question, sequence_length=q_mask, dtype=tf.float32)
                 #note LSTM returns a pair of hidden states (c, h) in end_state
                 scope.reuse_variables()
                 p_outputs, p_end_state = tf.nn.dynamic_rnn(encode_cell, paragraph, sequence_length=p_mask, dtype=tf.float32)
@@ -54,7 +55,21 @@ class Encoder(object):
             scope.reuse_variables()
             
         #affinity matrix from batch matmul and resulting attention weights
-        L = tf.batch_matmul(Q, P, adj_y=True) #batch by q by p
+        Lp = tf.batch_matmul(Q, P, adj_y=True) #batch by q by p
+        
+        #exp mask over L :(        
+        def make_slice_mask(inputs):
+            lp, q_len, p_len = inputs
+            q_max = tf.shape(lp)[0]
+            p_max = tf.shape(lp)[1]
+            mask_core = tf.ones([q_len, p_len], dtype=tf.float32) #ones_like?
+            mask = tf.pad(mask_core, [[0, q_max-q_len], [0, p_max-p_len]]) #pad out zeros part
+            slice_mask = (1.-mask)*1e-30
+            return slice_mask
+        
+        exp_mask = tf.map_fn(make_slice_mask, [Lp, q_mask, p_mask], dtype=tf.float32)
+        L = Lp + exp_mask
+        
         A_P = tf.nn.softmax(L) #batch by q by p, normalized across p
         A_Q = tf.nn.softmax(L, dim=1) #batch by q by p, normalized across q
             
@@ -69,12 +84,14 @@ class Encoder(object):
         with tf.variable_scope('encoder_BLSTM') as scope:
             with tf.variable_scope('encoder_BLSTM_F') as scope:
                 encode2_f_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
+                encode2_f_cell_d = tf.nn.rnn_cell.DropoutWrapper(encode2_f_cell, keep_prob, 1.) #no output dropout since decoder drops out at start already
                 scope.reuse_variables()
             with tf.variable_scope('encoder_BLSTM_B') as scope:
                 encode2_b_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
+                encode2_b_cell_d = tf.nn.rnn_cell.DropoutWrapper(encode2_b_cell, keep_prob, 1.)
                 scope.reuse_variables()
             
-            outputs, end_state = tf.nn.bidirectional_dynamic_rnn(encode2_f_cell, encode2_b_cell, BLSTM_input, sequence_length=p_mask, dtype=tf.float32) #init state?
+            outputs, end_state = tf.nn.bidirectional_dynamic_rnn(encode2_f_cell_d, encode2_b_cell_d, BLSTM_input, sequence_length=p_mask, dtype=tf.float32) #init state?
             scope.reuse_variables()
             
         #form knowledge rep U from biLSTM, cut off outputs corresponding to sentinel (last in sequence dim)

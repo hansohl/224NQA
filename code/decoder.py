@@ -7,7 +7,7 @@ def LSTMNode(h, c, u, scope, iteration, keep_prob, hidden_size = 200):
             scope.reuse_variables()
 
         u = tf.nn.dropout(u, keep_prob)
-        h = tf.nn.dropout(h, keep_prob)
+        #h = tf.nn.dropout(h, keep_prob)
         Wi = tf.get_variable("Wi", [4 * hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         Ui = tf.get_variable("Ui", [hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         bi = tf.get_variable("bi", [hidden_size], initializer=tf.constant_initializer(0.0), dtype=tf.float32)
