@@ -5,7 +5,7 @@ def LSTMNode(h, c, u, scope, iteration, keep_prob, hidden_size = 200):
     with tf.variable_scope(scope) as scope:
         if iteration > 0:
             scope.reuse_variables()
-            
+
         u = tf.nn.dropout(u, keep_prob)
         h = tf.nn.dropout(h, keep_prob)
         Wi = tf.get_variable("Wi", [4 * hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
@@ -104,5 +104,8 @@ class DCNDecoder(object):
 
 
         # return tf.squeeze(s), tf.squeeze(e) #cast to make data scalar?
+        context_mask = tf.sequence_mask(masks, paragraph_size)
+        alpha = alpha + (1 - tf.cast(context_mask, 'float')) * (-1e30)
+        beta = beta + (1 - tf.cast(context_mask, 'float')) * (-1e30)
         return alpha, beta
         # return tf.one_hot(s, paragraph_size), tf.one_hot(e, paragraph_size) #cast to make data scalar?
