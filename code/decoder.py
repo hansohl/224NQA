@@ -5,32 +5,35 @@ def LSTMNode(h, c, u, scope, iteration, keep_prob, hidden_size = 200):
     with tf.variable_scope(scope) as scope:
         if iteration > 0:
             scope.reuse_variables()
+            
+        u = tf.nn.dropout(u, keep_prob)
+        h = tf.nn.dropout(h, keep_prob)
         Wi = tf.get_variable("Wi", [4 * hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         Ui = tf.get_variable("Ui", [hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         bi = tf.get_variable("bi", [hidden_size], initializer=tf.constant_initializer(0.0), dtype=tf.float32)
         i = tf.sigmoid(tf.matmul(u, Wi) + tf.matmul(h, Ui) + bi)
-        i = tf.nn.dropout(i, keep_prob)
+        #i = tf.nn.dropout(i, keep_prob)
         # i = tf.sigmoid(tf.matmul(u, Wi) + tf.matmul(h, Ui))
 
         Wf = tf.get_variable("Wf", [4 * hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         Uf = tf.get_variable("Uf", [hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         bf = tf.get_variable("bf", [hidden_size], initializer=tf.constant_initializer(1.0), dtype=tf.float32)
         f = tf.sigmoid(tf.matmul(u, Wf) + tf.matmul(h, Uf) + bf)
-        f = tf.nn.dropout(f, keep_prob)
+        #f = tf.nn.dropout(f, keep_prob)
         # f = tf.sigmoid(tf.matmul(u, Wf) + tf.matmul(h, Uf))
 
         Wo = tf.get_variable("Wo", [4 * hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         Uo = tf.get_variable("Uo", [hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
         bo = tf.get_variable("bo", [hidden_size], initializer=tf.constant_initializer(0.0), dtype=tf.float32)
         o = tf.sigmoid(tf.matmul(u, Wo) + tf.matmul(h, Uo) + bo)
-        o = tf.nn.dropout(o, keep_prob)
+        #o = tf.nn.dropout(o, keep_prob)
         # o = tf.sigmoid(tf.matmul(u, Wo) + tf.matmul(h, Uo))
 
         Wc = tf.get_variable("Wc", [4 * hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer())
         Uc = tf.get_variable("Uc", [hidden_size, hidden_size], initializer=tf.contrib.layers.xavier_initializer())
         bc = tf.get_variable("bc", [hidden_size], initializer=tf.constant_initializer(0.0), dtype=tf.float32)
         c_p = tf.tanh(tf.matmul(u, Wc) + tf.matmul(h, Uc) + bc)
-        c_p = tf.nn.dropout(c_p, keep_prob)
+        #c_p = tf.nn.dropout(c_p, keep_prob)
         # c_p = tf.tanh(tf.matmul(u, Wc) + tf.matmul(h, Uc))
 
         ct = f * c + i * c_p

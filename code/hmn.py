@@ -25,6 +25,7 @@ def HMN(U, h_i, s_prev, e_prev, keep_prob, iteration, scope_name):
 
         # h_i_tiled = tf.tile(h_i, (batch_size, 1)) #h is indeed a batch
         hsu = tf.concat(1, [h_i, s_prev, e_prev])
+        hsu = tf.nn.dropout(hsu, keep_prob)
         #hsu is batch_size x (hidden_size * 5)
         r = tf.nn.tanh(tf.matmul(hsu, Wd)) # r is batch_size x hidden_size
         r = tf.expand_dims(r, 1) # batch_size x 1 x hidden_size
@@ -35,13 +36,13 @@ def HMN(U, h_i, s_prev, e_prev, keep_prob, iteration, scope_name):
         m1_inner = tf.matmul(Ur, W1) + b1
         m1_inner = tf.reshape(m1_inner, [batch_size, document_length, HIDDEN_LAYER_SIZE, POOL_SIZE])
         m1 = tf.reduce_max(m1_inner, axis=3) #m1 is batch_size x document_length x hidden_size (the pool size was maxed over)
-        m1 = tf.nn.dropout(m1, keep_prob)
+        #m1 = tf.nn.dropout(m1, keep_prob)
         m1_r = tf.reshape(m1, [batch_size * document_length, HIDDEN_LAYER_SIZE])
 
         m2_inner = tf.matmul(m1_r, W2) + b2
         m2_inner = tf.reshape(m2_inner, [batch_size, document_length, HIDDEN_LAYER_SIZE, POOL_SIZE])
         m2 = tf.reduce_max(m2_inner, axis=3) #m2 is batch_size x document_length x hidden_size (pool maxed over again)
-        m2 = tf.nn.dropout(m2, keep_prob)
+        #m2 = tf.nn.dropout(m2, keep_prob)
 
         m1m2 = tf.concat(2, [m1, m2]) #m1m2 is batch_size x document_length x (2 * hidden_size)
         m1m2 = tf.reshape(m1m2, [batch_size * document_length, 2 * HIDDEN_LAYER_SIZE])
