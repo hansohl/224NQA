@@ -29,10 +29,15 @@ A Dynamic Coattention Network.
 Train using python code/train.py with the flags:
 
 --learning_rate (0.01) : initial ADAM learning rate (0.001 seems to work well with batch 32)
+
 --batch_size (32)
+
 --train_dir (train) : the directory the checkpointer will write save files to (watch out for overwriting!)
+
 --load_train_dir (train) : the directory to load model from (defaults to train_dir but probably safer to keep different)
+
 --log_dir (log) : directory where the log and tensorboard files will go
+
 --optimizer (adam) : adam or sgd
 
 
