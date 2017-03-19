@@ -85,11 +85,8 @@ class DCNDecoder(object):
 
         # iterate and update s and e
         for i in range(iters):
-            s, u_s_new, alpha = hmn.HMN(U, h, u_s, u_e, i, hmn_s)
-            e, u_e_new, beta = hmn.HMN(U, h, u_s, u_e, i, hmn_e)
-
-            u_s = u_s_new
-            u_e = u_e_new
+            s, u_s, alpha = hmn.HMN(U, h, u_s, u_e, i, hmn_s)
+            e, u_e, beta = hmn.HMN(U, h, u_s, u_e, i, hmn_e)
 
             u_se = tf.concat(1, (u_s, u_e))
             h, c = LSTMNode(h, c, u_se, lstm_d, i, hidden_size)

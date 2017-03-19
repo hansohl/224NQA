@@ -66,10 +66,12 @@ class QASystem(object):
         self.grad_norm = tf.global_norm(grads)
         tf.summary.scalar('grad_norm', self.grad_norm)
         self.training_op = self.optimizer.apply_gradients(grads_and_vars)
-
-        self.summary = tf.merge_all_summaries()
         #default (boring!) trainingop
         #self.training_op = self.optimizer.minimize(self.loss)
+        
+        self.summary = tf.summary.merge_all()
+        self.saver = tf.train.Saver()
+        
 
 
 
@@ -399,6 +401,7 @@ class QASystem(object):
         for epoch in range(10):
             #temp hack to only train on some small subset:
             #max_iters = some small constant
+            max_iters = 10
 
             for iteration in range(int(max_iters)):
                 print("Current iteration: " + str(iteration))
@@ -417,3 +420,8 @@ class QASystem(object):
                 if iteration%400==399:
                     valid_loss = self.validate(session, valid_dataset)
                     print("Validation Loss: " + str(valid_loss))
+            
+            #done with epoch
+            save_path = self.saver.save(session, self.FLAGS.train_dir + "/model_ep" + str(epoch) + ".ckpt")
+            logging.info("Model saved in file {}".format(save_path))
+                    
