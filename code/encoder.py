@@ -29,13 +29,21 @@ class Encoder(object):
 
         #run encode LSTM to get representations
         with tf.variable_scope('encoder') as scope:
-            with tf.variable_scope('encoder_read_LSTM') as scope:
-                encode_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
-                encode_cell_d = tf.nn.rnn_cell.DropoutWrapper(encode_cell, keep_prob, keep_prob)
-                q_outputs, q_end_state = tf.nn.dynamic_rnn(encode_cell_d, question, sequence_length=q_mask, dtype=tf.float32)
+            with tf.variable_scope('encoder_read_LSTM') as scope2:
+                with tf.variable_scope('e_r_forward') as scope3:
+                    encode_cell_f = tf.nn.rnn_cell.LSTMCell(self.size/2, initializer=tf.contrib.layers.xavier_initializer())
+                    encode_cell_f_d = tf.nn.rnn_cell.DropoutWrapper(encode_cell_f, keep_prob, keep_prob)
+                    scope3.reuse_variables()
+                with tf.variable_scope('e_r_backward') as scope4:
+                    encode_cell_b = tf.nn.rnn_cell.LSTMCell(self.size/2, initializer=tf.contrib.layers.xavier_initializer())
+                    encode_cell_b_d = tf.nn.rnn_cell.DropoutWrapper(encode_cell_b, keep_prob, keep_prob)
+                    scope4.reuse_variables()
+                q_outputs, q_end_state = tf.nn.bidirectional_dynamic_rnn(encode_cell_f_d, encode_cell_b_d, question, sequence_length=q_mask, dtype=tf.float32)
+                q_outputs = tf.concat(2, q_outputs)
                 #note LSTM returns a pair of hidden states (c, h) in end_state
-                scope.reuse_variables()
-                p_outputs, p_end_state = tf.nn.dynamic_rnn(encode_cell, paragraph, sequence_length=p_mask, dtype=tf.float32)
+                scope2.reuse_variables()
+                p_outputs, p_end_state = tf.nn.bidirectional_dynamic_rnn(encode_cell_f_d, encode_cell_b_d, paragraph, sequence_length=p_mask, dtype=tf.float32)
+                p_outputs = tf.concat(2, p_outputs)
             
             #make and concat sentinel values
             #uniform random float init [0,1)
@@ -82,14 +90,14 @@ class Encoder(object):
         #run biLSTM over context C_P
         BLSTM_input = tf.concat(2, [P, C_P])
         with tf.variable_scope('encoder_BLSTM') as scope:
-            with tf.variable_scope('encoder_BLSTM_F') as scope:
+            with tf.variable_scope('encoder_BLSTM_F') as scope2:
                 encode2_f_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
                 encode2_f_cell_d = tf.nn.rnn_cell.DropoutWrapper(encode2_f_cell, keep_prob, 1.) #no output dropout since decoder drops out at start already
-                scope.reuse_variables()
-            with tf.variable_scope('encoder_BLSTM_B') as scope:
+                scope2.reuse_variables()
+            with tf.variable_scope('encoder_BLSTM_B') as scope3:
                 encode2_b_cell = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
                 encode2_b_cell_d = tf.nn.rnn_cell.DropoutWrapper(encode2_b_cell, keep_prob, 1.)
-                scope.reuse_variables()
+                scope3.reuse_variables()
             
             outputs, end_state = tf.nn.bidirectional_dynamic_rnn(encode2_f_cell_d, encode2_b_cell_d, BLSTM_input, sequence_length=p_mask, dtype=tf.float32) #init state?
             scope.reuse_variables()
