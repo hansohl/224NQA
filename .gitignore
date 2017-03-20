@@ -2,3 +2,5 @@
 log/log.txt
 log/*
 train/*
+*DS_Store
+data/squad/*
