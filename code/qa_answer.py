@@ -14,7 +14,10 @@ import numpy as np
 from six.moves import xrange
 import tensorflow as tf
 
-from qa_model import Encoder, QASystem, Decoder
+from qa_model import QASystem
+from encoder import Encoder
+from decoder import DCNDecoder as Decoder
+from qa_data import PAD_ID
 from preprocessing.squad_preprocess import data_from_json, maybe_download, squad_base_url, \
     invert_map, tokenize, token_idx_map
 import qa_data
@@ -26,6 +29,7 @@ logging.basicConfig(level=logging.INFO)
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
+tf.app.flags.DEFINE_float("max_gradient_norm", 10.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_float("dropout", 0.15, "Fraction of units randomly dropped on non-recurrent connections.")
 tf.app.flags.DEFINE_integer("batch_size", 10, "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("epochs", 0, "Number of epochs to train.")
@@ -35,6 +39,7 @@ tf.app.flags.DEFINE_integer("output_size", 750, "The output size of your model."
 tf.app.flags.DEFINE_integer("keep", 0, "How many checkpoints to keep, 0 indicates keep all.")
 tf.app.flags.DEFINE_string("train_dir", "train", "Training directory (default: ./train).")
 tf.app.flags.DEFINE_string("log_dir", "log", "Path to store log and flag files (default: ./log)")
+tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
 tf.app.flags.DEFINE_string("vocab_path", "data/squad/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
 tf.app.flags.DEFINE_string("embed_path", "", "Path to the trimmed GLoVe embedding (default: ./data/squad/glove.trimmed.{embedding_size}.npz)")
 tf.app.flags.DEFINE_string("dev_path", "data/squad/dev-v1.1.json", "Path to the JSON dev set to evaluate against (default: ./data/squad/dev-v1.1.json)")
@@ -90,11 +95,11 @@ def read_dataset(dataset, tier, vocab):
                 question_tokens = tokenize(question)
                 question_uuid = qas[qid]['id']
 
-                context_ids = [str(vocab.get(w, qa_data.UNK_ID)) for w in context_tokens]
-                qustion_ids = [str(vocab.get(w, qa_data.UNK_ID)) for w in question_tokens]
+                context_ids = [vocab.get(w, qa_data.UNK_ID) for w in context_tokens]
+                qustion_ids = [vocab.get(w, qa_data.UNK_ID) for w in question_tokens]
 
-                context_data.append(' '.join(context_ids))
-                query_data.append(' '.join(qustion_ids))
+                context_data.append(context_ids)
+                query_data.append(qustion_ids)
                 question_uuid_data.append(question_uuid)
 
     return context_data, query_data, question_uuid_data
@@ -130,7 +135,35 @@ def generate_answers(sess, model, dataset, rev_vocab):
     :return:
     """
     answers = {}
+    
+    p_all, q_all, uuid_all = dataset
+    batch_size = FLAGS.batch_size
+    max_iters = np.ceil(len(p_all)/float(batch_size))
+    print("Max iterations: " + str(max_iters))
+    for iteration in range(int(max_iters)):
+        print("Iteration: " + str(iteration))
+        qs = q_all[iteration*batch_size:(iteration+1)*batch_size]
+        q_seq_lens = np.array([len(q) for q in qs])
+        q_seq_mlen = np.max(q_seq_lens)
+        q_batch = np.array([q + [PAD_ID]*(q_seq_mlen - len(q)) for q in qs])
+        
+        ps = p_all[iteration*batch_size:(iteration+1)*batch_size]
+        p_seq_lens = np.array([len(p) for p in ps])
+        p_seq_mlen = np.max(p_seq_lens)
+        p_batch = np.array([p + [PAD_ID]*(p_seq_mlen - len(p)) for p in ps])
+        
+        uuids = uuid_all[iteration*batch_size:(iteration+1)*batch_size]
+        
+        test_x = (q_batch, q_seq_lens, p_batch, p_seq_lens)
+        pred_s, pred_e = model.answer(sess, test_x)
 
+        pred_word_inds = [p_batch[i][pred_s[i]:pred_e[i]+1] for i in range(len(p_batch))]
+        
+        for i in range(len(p_batch)):
+            inds = pred_word_inds[i]
+            words = [rev_vocab[ind] for ind in inds]
+            answer = " ".join(words)
+            answers[uuids[i]] = answer
     return answers
 
 
@@ -179,7 +212,7 @@ def main(_):
     encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
     decoder = Decoder(output_size=FLAGS.output_size)
 
-    qa = QASystem(encoder, decoder)
+    qa = QASystem(encoder, decoder, FLAGS)
 
     with tf.Session() as sess:
         train_dir = get_normalized_train_dir(FLAGS.train_dir)
