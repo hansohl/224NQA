@@ -36,10 +36,11 @@ def HMN(U, h_i, s_prev, e_prev, keep_prob, iteration, scope_name):
         m1_inner = tf.matmul(Ur, W1) + b1
         m1_inner = tf.reshape(m1_inner, [batch_size, document_length, HIDDEN_LAYER_SIZE, POOL_SIZE])
         m1 = tf.reduce_max(m1_inner, axis=3) #m1 is batch_size x document_length x hidden_size (the pool size was maxed over)
-        #m1 = tf.nn.dropout(m1, keep_prob)
         m1_r = tf.reshape(m1, [batch_size * document_length, HIDDEN_LAYER_SIZE])
-
-        m2_inner = tf.matmul(m1_r, W2) + b2
+        m1_r_d = tf.nn.dropout(m1_r, keep_prob)
+        
+        
+        m2_inner = tf.matmul(m1_r_d, W2) + b2
         m2_inner = tf.reshape(m2_inner, [batch_size, document_length, HIDDEN_LAYER_SIZE, POOL_SIZE])
         m2 = tf.reduce_max(m2_inner, axis=3) #m2 is batch_size x document_length x hidden_size (pool maxed over again)
         #m2 = tf.nn.dropout(m2, keep_prob)

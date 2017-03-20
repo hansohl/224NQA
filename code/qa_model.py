@@ -35,7 +35,8 @@ class QASystem(object):
         :param args: pass in more arguments as needed
         """
         #extra args
-        self.FLAGS  = args[0]
+        self.embed_path = args[0]
+        self.FLAGS  = args[1]
         embed_size = self.FLAGS.embedding_size
         output_size = self.FLAGS.output_size
 
@@ -110,7 +111,8 @@ class QASystem(object):
         :return:
         """
         with vs.variable_scope("embeddings"):
-            embedding_files = np.load("data/squad/glove.trimmed.100.npz")
+            print("Loading embeddings from " + self.embed_path)
+            embedding_files = np.load(self.embed_path)
             self.pretrained_embeddings = tf.constant(embedding_files["glove"], dtype=tf.float32)
             self.distr_q = tf.nn.embedding_lookup(self.pretrained_embeddings, self.q_placeholder)
             self.distr_p = tf.nn.embedding_lookup(self.pretrained_embeddings, self.p_placeholder)

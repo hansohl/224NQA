@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_float("dropout", 0.15, "Fraction of units randomly dropped o
 tf.app.flags.DEFINE_integer("batch_size", 10, "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("epochs", 0, "Number of epochs to train.")
 tf.app.flags.DEFINE_integer("state_size", 200, "Size of each model layer.")
-tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
+tf.app.flags.DEFINE_integer("embedding_size", 300, "Size of the pretrained vocabulary.")
 tf.app.flags.DEFINE_integer("output_size", 750, "The output size of your model.")
 tf.app.flags.DEFINE_integer("keep", 0, "How many checkpoints to keep, 0 indicates keep all.")
 tf.app.flags.DEFINE_string("train_dir", "train", "Training directory (default: ./train).")
@@ -77,6 +77,7 @@ def read_dataset(dataset, tier, vocab):
     context_data = []
     query_data = []
     question_uuid_data = []
+    context_tokens_list = []
 
     for articles_id in tqdm(range(len(dataset['data'])), desc="Preprocessing {}".format(tier)):
         article_paragraphs = dataset['data'][articles_id]['paragraphs']
@@ -101,8 +102,9 @@ def read_dataset(dataset, tier, vocab):
                 context_data.append(context_ids)
                 query_data.append(qustion_ids)
                 question_uuid_data.append(question_uuid)
+                context_tokens_list.append(context_tokens)
 
-    return context_data, query_data, question_uuid_data
+    return context_data, query_data, question_uuid_data, context_tokens_list
 
 
 def prepare_dev(prefix, dev_filename, vocab):
@@ -110,12 +112,12 @@ def prepare_dev(prefix, dev_filename, vocab):
     dev_dataset = maybe_download(squad_base_url, dev_filename, prefix)
 
     dev_data = data_from_json(os.path.join(prefix, dev_filename))
-    context_data, question_data, question_uuid_data = read_dataset(dev_data, 'dev', vocab)
+    context_data, question_data, question_uuid_data, context_tokens_list = read_dataset(dev_data, 'dev', vocab)
 
-    return context_data, question_data, question_uuid_data
+    return context_data, question_data, question_uuid_data, context_tokens_list
 
 
-def generate_answers(sess, model, dataset, rev_vocab):
+def generate_answers(sess, model, dataset, rev_vocab, context_tokens_list):
     """
     Loop over the dev or test dataset and generate answer.
 
@@ -137,12 +139,6 @@ def generate_answers(sess, model, dataset, rev_vocab):
     answers = {}
     
     p_all, q_all, uuid_all = dataset
-    print(len(p_all))
-    print(len(q_all))
-    print(p_all[0])
-    print(p_all[1])
-    print(q_all[0])
-    print(q_all[1])
     batch_size = FLAGS.batch_size
     max_iters = np.ceil(len(p_all)/float(batch_size))
     print("Max iterations: " + str(max_iters))
@@ -163,11 +159,14 @@ def generate_answers(sess, model, dataset, rev_vocab):
         test_x = (q_batch, q_seq_lens, p_batch, p_seq_lens)
         pred_s, pred_e = model.answer(sess, test_x)
 
-        pred_word_inds = [p_batch[i][pred_s[i]:pred_e[i]+1] for i in range(len(p_batch))]
-        
+        #pred_word_inds = [p_batch[i][pred_s[i]:pred_e[i]+1] for i in range(len(p_batch))]
+        context_tokens = context_tokens_list[iteration*batch_size:(iteration+1)*batch_size]
         for i in range(len(p_batch)):
-            inds = pred_word_inds[i]
-            words = [rev_vocab[ind] for ind in inds]
+            #inds = pred_word_inds[i]
+            #words = [rev_vocab[ind] for ind in inds]
+            start = pred_s[i]
+            end = pred_e[i]
+            words = context_tokens[i][start:end+1]
             answer = " ".join(words)
             answers[uuids[i]] = answer
     return answers
@@ -209,7 +208,7 @@ def main(_):
 
     dev_dirname = os.path.dirname(os.path.abspath(FLAGS.dev_path))
     dev_filename = os.path.basename(FLAGS.dev_path)
-    context_data, question_data, question_uuid_data = prepare_dev(dev_dirname, dev_filename, vocab)
+    context_data, question_data, question_uuid_data, context_tokens_list = prepare_dev(dev_dirname, dev_filename, vocab)
     dataset = (context_data, question_data, question_uuid_data)
 
     # ========= Model-specific =========
@@ -218,12 +217,12 @@ def main(_):
     encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
     decoder = Decoder(output_size=FLAGS.output_size)
 
-    qa = QASystem(encoder, decoder, FLAGS)
+    qa = QASystem(encoder, decoder, embed_path, FLAGS)
 
     with tf.Session() as sess:
         train_dir = get_normalized_train_dir(FLAGS.train_dir)
         initialize_model(sess, qa, train_dir)
-        answers = generate_answers(sess, qa, dataset, rev_vocab)
+        answers = generate_answers(sess, qa, dataset, rev_vocab, context_tokens_list)
 
         # write to json file to root dir
         with io.open('dev-prediction.json', 'w', encoding='utf-8') as f:

@@ -108,7 +108,7 @@ def main(_):
     encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
     decoder = DCNDecoder(output_size=FLAGS.output_size)
 
-    qa = QASystem(encoder, decoder, FLAGS)
+    qa = QASystem(encoder, decoder, embed_path, FLAGS)
 
     if not os.path.exists(FLAGS.log_dir):
         os.makedirs(FLAGS.log_dir)

@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
+POOL_SIZE = 16
+
 
 class Encoder(object):
     def __init__(self, size, vocab_dim):
@@ -30,6 +32,7 @@ class Encoder(object):
         #run encode LSTM to get representations
         with tf.variable_scope('encoder') as scope:
             with tf.variable_scope('encoder_read_LSTM') as scope2:
+                '''
                 with tf.variable_scope('e_r_forward') as scope3:
                     encode_cell_f = tf.nn.rnn_cell.LSTMCell(self.size/2, initializer=tf.contrib.layers.xavier_initializer())
                     encode_cell_f_d = tf.nn.rnn_cell.DropoutWrapper(encode_cell_f, keep_prob, keep_prob)
@@ -38,12 +41,17 @@ class Encoder(object):
                     encode_cell_b = tf.nn.rnn_cell.LSTMCell(self.size/2, initializer=tf.contrib.layers.xavier_initializer())
                     encode_cell_b_d = tf.nn.rnn_cell.DropoutWrapper(encode_cell_b, keep_prob, keep_prob)
                     scope4.reuse_variables()
-                q_outputs, q_end_state = tf.nn.bidirectional_dynamic_rnn(encode_cell_f_d, encode_cell_b_d, question, sequence_length=q_mask, dtype=tf.float32)
-                q_outputs = tf.concat(2, q_outputs)
+                '''
+                encode_cell_f = tf.nn.rnn_cell.LSTMCell(self.size, initializer=tf.contrib.layers.xavier_initializer())
+                encode_cell_f_d = tf.nn.rnn_cell.DropoutWrapper(encode_cell_f, keep_prob, keep_prob)
+            
+            
+                q_outputs, q_end_state = tf.nn.dynamic_rnn(encode_cell_f_d, question, sequence_length=q_mask, dtype=tf.float32)
+                #q_outputs = tf.concat(2, q_outputs)
                 #note LSTM returns a pair of hidden states (c, h) in end_state
                 scope2.reuse_variables()
-                p_outputs, p_end_state = tf.nn.bidirectional_dynamic_rnn(encode_cell_f_d, encode_cell_b_d, paragraph, sequence_length=p_mask, dtype=tf.float32)
-                p_outputs = tf.concat(2, p_outputs)
+                p_outputs, p_end_state = tf.nn.dynamic_rnn(encode_cell_f_d, paragraph, sequence_length=p_mask, dtype=tf.float32)
+                #p_outputs = tf.concat(2, p_outputs)
             
             #make and concat sentinel values
             #uniform random float init [0,1)
@@ -56,10 +64,16 @@ class Encoder(object):
             
             #get final Q rep:
             #wizardry and voodoo to do einsum 'aij,jk->aik' (batch by seq by hidden matrix multiplied with hidden by hidden)
-            W = tf.get_variable("W_qenc", shape=[self.size, self.size], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
-            b = tf.get_variable("b_qenc", initializer=tf.zeros([self.size]), dtype=tf.float32)
+            #attemp a maxout on the question rep
+            W = tf.get_variable("W_qenc", shape=[self.size, self.size, POOL_SIZE], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+            W_r = tf.reshape(W, [self.size, self.size*POOL_SIZE])
+            b = tf.get_variable("b_qenc", initializer=tf.zeros([self.size, POOL_SIZE]), dtype=tf.float32)
+            b_r = tf.reshape(b, [self.size*POOL_SIZE])
             Qprime_b = tf.reshape(Qprime, [-1, self.size])
-            Q = tf.reshape(tf.tanh(tf.matmul(Qprime_b, W) + b), [-1, tf.shape(Qprime)[1], self.size]) #batch by q by hidden
+            Qprime_b_d = tf.nn.dropout(Qprime_b, keep_prob)
+            Q_inner = tf.tanh(tf.reshape(tf.matmul(Qprime_b_d, W_r) + b_r, [-1, tf.shape(Qprime)[1], self.size, POOL_SIZE])) #batch by q by hidden by pool
+            Q = tf.reduce_max(Q_inner, axis=3) #batch by q by hidden
+            #Q = tf.reshape(tf.reduce_max(tf.tanh(tf.matmul(Qprime_b, W_r) + b_r), axis=1), [-1, tf.shape(Qprime)[1], self.size]) #batch by q by hidden
             scope.reuse_variables()
             
         #affinity matrix from batch matmul and resulting attention weights
