@@ -137,6 +137,12 @@ def generate_answers(sess, model, dataset, rev_vocab):
     answers = {}
     
     p_all, q_all, uuid_all = dataset
+    print(len(p_all))
+    print(len(q_all))
+    print(p_all[0])
+    print(p_all[1])
+    print(q_all[0])
+    print(q_all[1])
     batch_size = FLAGS.batch_size
     max_iters = np.ceil(len(p_all)/float(batch_size))
     print("Max iterations: " + str(max_iters))

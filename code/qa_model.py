@@ -71,7 +71,7 @@ class QASystem(object):
         #self.training_op = self.optimizer.minimize(self.loss)
 
         self.summary = tf.summary.merge_all()
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=11)
 
 
 
